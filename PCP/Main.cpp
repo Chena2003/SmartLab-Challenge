@@ -12,7 +12,6 @@ using namespace szx;
 
 void loadInput(istream& is, PCenter& pc) {
 	is >> pc.nodeNum >> pc.centerNum;
-	pc.weight.assign(pc.nodeNum, 1); // 每个点权重初始化为1
 	pc.coverages.resize(pc.nodeNum);
 	pc.coveredNodeNums.resize(pc.nodeNum);
 	for (int i; i < pc.nodeNum; i ++) {
@@ -20,7 +19,10 @@ void loadInput(istream& is, PCenter& pc) {
 		is >> coveredNodeNum;
 		pc.coveredNodeNums[i] = coveredNodeNum;
 		pc.coverages[i].resize(coveredNodeNum);
-		for (int j = 0; j < coveredNodeNum; j ++) { is >> pc.coverages[i][j]; }
+		for (int j = 0; j < coveredNodeNum; j ++) { 
+			is >> pc.coverages[i][j]; 
+			pc.serives[pc.coverages[i][j]][i] = true;
+		}
 	}
 
 	EdgeId minEdgeLenRank;

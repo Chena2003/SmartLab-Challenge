@@ -10,22 +10,37 @@
 
 #include <vector>
 #include <functional>
+#include <unordered_set>
 
 
 namespace szx {
 
+#define INTMAX 1e9 + 10
+#define MODNUM 1e8
+
 using NodeId = int;
 using EdgeId = NodeId;
 using Nodes = std::vector<NodeId>;
+using UCenters = unordered_set<int>;
+
 
 struct PCenter {
 	NodeId nodeNum;
 	NodeId centerNum;
 	std::vector<int> coveredNodeNums; // 每个点覆盖点数
-	std::vector<int> weight; // 每个点的权重
 	std::vector<Nodes> coverages; // `coverages[n]` are the nodes covered by node `n` if node `n` is a center.
 	std::vector<Nodes> nodesWithDrops; // `nodesWithDrops[r]` are the nodes which will drop its farthest covering node in the `r`th radius reduction.
+	std::vector<vector<bool>> serives; // `serivers[n]` 表示节点n可被服务的节点
 };
+
+struct solverNodes {
+	struct PCenter Nodes;
+	std::vector<int> weight; // 节点的权重
+	std::vector<bool> inCenter; // 节点是否被选中为中心点
+	std::vector<int> delta; // 节点delta
+	std::vector<int> age; // 节点年龄
+};
+
 
 using Centers = Nodes; // `Centers[k]` is the `k`th picked center.
 using Deltas = Nodes;
