@@ -23,9 +23,9 @@ private:
 	int Gamma[3] = {1.3, 1.7, 2.3};
 
 	// 贪婪搜索，得到初始解
-	void greedySearch(Centers& solution, PCenter& input, function<long long()> restMilliSec) {
+	void greedySearch(Centers& solution, solverNodes& solver, function<long long()> restMilliSec) {
 		// 每次加入覆盖未覆盖节点最多的节点
-		PCenter nodes(input);
+		PCenter nodes(solver.Nodes);
 		UCenters coveredCenter;
 
 		for(NodeId k = 0; (restMilliSec() > 0) && (k < nodes.centerNum); k ++) {
@@ -41,6 +41,7 @@ private:
 
 			int choice = rand(cnts[t[0].first]);
 			solution[k] = t[choice].second;
+			solver.inCenter[t[choice].second] = true;
 
 			// 更新
 			for(auto i : nodes.coverages[solution[k]]) 
@@ -59,31 +60,52 @@ private:
 	void initDelta(Centers& solution, solverNodes& solver) {
 		PCenter nodes(solver.Nodes);
 		for(NodeId i = 0; i < nodes.nodeNum; i ++) {
-			Centers t(solution);
+			UCenters ucenters(solver.ucenters);
 			if(solver.inCenter[i]) {
-				t.erase(remove(t.begin(), t.end(), i), t.end());
-				UCenters ucenter = U(t, nodes);
+				for(NodeId j : nodes.coverages[i]) {
+					if(solver.seriveNodeNums[j] == 1)
+						ucenters.insert(j);
+				}
+
 				for(auto j : nodes.coverages[i]) {
-					if(ucenter.find(j) == ucenter.end())
+					if(ucenters.find(j) == ucenters.end())
 						solver.delta[i] += solver.weight[j];
 				}
 			}
 			else {
-				UCenters ucenter = U(t, nodes);
 				for(auto j : nodes.coverages[i])
-					if(ucenter.find(j) == ucenter.end())
+					if(ucenters.find(j) == ucenters.end())
 					solver.delta[i] += solver.weight[j];
 			}
 		}
 	}	
 
-	// U 操作
-	UCenters U(Centers& solution, PCenter& input) {
-		UCenters ucenter;
-		for(auto i : solution) {
-			for(auto j : input.coverages[i]) {
-				ucenter.insert(j);
+	void initseriveNodeNums(Centers& solution, solverNodes& solver) {
+		for(NodeId i : solution) {
+			for(NodeId j : solver.Nodes.coverages[i]) {
+				solver.seriveNodeNums[j] ++;
+
+				if(solver.seriveNodeNums[j] == 1)
+					solver.seriveNodeId[j] = i;
+				else
+					solver.seriveNodeId[j] = -1;
 			}
+		}
+	}
+
+	void initUCenters(solverNodes& solver) {
+		for(NodeId i = 0; i < solver.Nodes.nodeNum; i ++) {
+			if(solver.seriveNodeNums[i] == 0)
+				solver.ucenters.insert(i);
+		}		
+	}
+
+	// U 操作
+	UCenters U(solverNodes& solver) {
+		UCenters ucenter;
+		for(NodeId i = 0; i < solver.Nodes.nodeNum; i ++) {
+			if(solver.seriveNodeNums[i] == 0)
+				ucenter.insert(i);
 		}
 
 		return move(ucenter);
@@ -92,16 +114,21 @@ private:
 	// 更新delta
 	void updateDelta(Centers& solution, solverNodes& solver, NodeId i) {
 		for(auto v : solver.Nodes.coverages[i]) {
+			int cnt = 0, nodeId;
 			for(auto x : solution) {
 				if(solver.Nodes.serives[v][x] == true) {
-					solver.delta[x] -= solver.weight[v];
+					nodeId = x;
+					cnt ++;
 				}
 			}
+
+			if(cnt == 1)
+				solver.delta[nodeId] -= solver.weight[v];
 		}
 	}
 
+	// 哈希函数
 	uint32_t hash(Centers& solution, int k) {
-		
 		uint32_t tot = 0;
 		for(auto i : solution) 
 			tot = (((uint32_t)pow(i, Gamma[k]) % (uint32_t)MODNUM) + tot) % (uint32_t)MODNUM;
@@ -126,12 +153,12 @@ private:
 	}
 
 	pair<int, int> findPair(Centers& solution, solverNodes& solver, vector<bool>& SL, vector<int>& AL, int iter) {
-		pair<int, int> bestpair;
-		int obj = INTMAX;
+		pair<int, int> bestpair = {-1, -1};
+		uint32_t obj = INTMAX;
 
 		PCenter nodes = solver.Nodes;
-		UCenters ucenters = U(solution, nodes);
-		NodeId k = rand(ucenters.size());
+		UCenters ucenters(solver.ucenters);
+		NodeId k = ucenters[rand(ucenters.size())];
 		
 		Deltas delta_(solver.delta);
 		for(NodeId i = 0; i < nodes.nodeNum; i ++) {
@@ -144,17 +171,76 @@ private:
 				if(Tabu(solution, SL, AL, iter, i, j))
 					continue;
 
-
+				uint32_t u = obj - solver.delta[i] + solver.delta[j];
 				
+				if(u < obj) {
+					obj = u;
+					bestpair = {i, j};
+				}
+				else if(u == obj && solver.age[j] < solver.age[bestpair.second]) {
+					bestpair = {i, j};
+				}
 			}
 
+			solver.delta = delta_;
 		}
+
+		return bestpair;
 	}
 
 
-	void makeMove(Centers& solution, int i, int j) {
+	void makeMove(Centers& solution, solverNodes& solver, int i, int j) {
+		// 加入i
+		for(NodeId v : solver.Nodes.coverages[i]) {
+			if(solver.seriveNodeNums[v] == 1) {
+				solver.delta[solver.seriveNodeId[v]] -= solver.weight[v];
+				solver.seriveNodeId[v] = -1;
+			}
+			else if(solver.seriveNodeNums[v] ==  0) {
+				for(NodeId l = 0; l < solver.Nodes.nodeNum; l ++)
+					if(l != i && solver.Nodes.serives[v][l] == true)
+						solver.delta[l] -= solver.weight[v];
 
+				solver.seriveNodeId[v] = i; 
+				solver.ucenters.earse(v);
+			}
 
+			solver.seriveNodeNums[v] ++;
+		}
+
+		// swap(i, j)
+		for(auto t = solution.begin(); t != solution.end(); t ++) {
+			if(*t == j) { 
+				*t = i;
+				solver.inCenter[j] = false;
+				solver.inCenter[i] = true;
+				break;
+			}
+		}
+
+		// 关闭j
+		for(NodeId v : solver.Nodes.coverages[j]) {
+			if(solver.seriveNodeNums[v] == 2) {
+				solver.delta[solver.seriveNodeId[v]] += solver.weight[v];
+
+				for(NodeId l = 0; l < solver.Nodes.nodeNum; l ++) {
+					if(solver.inCenter[l] && solver.Nodes.serives[v][l]) {
+						solver.seriveNodeId[v] = l;
+						break;
+					}
+				}
+			}
+			else if(solver.seriveNodeNums[v] == 1) {
+				for(NodeId l = 0; l < solver.Nodes.nodeNum; l ++) 
+					if(l != j && solver.Nodes.serives[v][l] == true)
+						solver.delta[l] += solver.weight[v];
+
+				solver.seriveNodeId[v] = -1;
+				solver.ucenters.insert(v);
+			}
+
+			solver.seriveNodeNums[v] --;
+		}
 	}
 
 
@@ -175,9 +261,11 @@ public:
 		solverNodes solver; // 初始化解结构
 		solver.Nodes = input;
 		solver.weight.assign(solver.Nodes.nodeNum, 1); // 初始化节点权重为1
-		solver.inCenter.assign(solver.Nodes.nodeNum, 0);  // 开始所有点都没有加入中心点中
+		solver.inCenter.assign(solver.Nodes.nodeNum, 0);  // 开始所有点都没有加入中心点
 		solver.age.assign(solver.Nodes.nodeNum, 0); // 初始化节点年龄为0
 		solver.delta.assign(solver.Nodes.nodeNum, 0); // 初始化节点delta为0
+		solver.seriveNodeNums.assign(solver.Nodes.nodeNum, 0); // 初始化节点被服务的中心点数为0
+		solver.seriveNodeId.assign(solver.Nodes.nodeNum, -1); // 初始化节点服务中心点为-1
  		
 		// initFixCenterx(); 寻找只覆盖器自己的节点
 		
@@ -185,33 +273,59 @@ public:
 		vector<int> AL(solver.Nodes.nodeNum, 0); // 初始化AL
 
 		Centers solution(solver.Nodes.centerNum);
-		greedySearch(solution, solver.Nodes, restMilliSec);// 求解初始解
+		greedySearch(solution, solver, restMilliSec);// 求解初始解
+
+		initseriveNodeNums(solution, solver); // 初始化节点被服务中心点数
+		initUCenters(solver); // 初始化ucenter
+
+		if(solver.ucenters.size() == 0) {
+			output = solution;
+			return true;
+		}
 
 		initDelta(solution, solver); // 初始化节点delta
 
 		bool findSolution = false;
-		Centers solution_(solution), output(solution);
-		for(int iter = 1; (restMilliSec() > 0) && U(solution, solver.Nodes).size() == 0; iter ++) {
+		Centers solution_(solution), bestsolution(solution);
+		UCenters bestUCenters(solver.ucenters);
+		for(int iter = 1; restMilliSec() > 0; iter ++) {
 			pair<int, int> t = findPair(solution_, solver, SL, AL, iter);
 
-			makeMove(solution, t.first, t.second);
+			makeMove(solution, solver, t.first, t.second);
 
 			// 比较
+			if(solver.ucenters.size() < bestUCenters.size()) {
+				bestsolution = solution;
+				bestUCenters = solver.ucenters;
+
+				if(bestUCenters.size() == 0) {
+					output = bestsolution;
+					findSolution = true;
+					break;
+				}
+			}
+			else if(solver.ucenters.size() > bestUCenters.size()) {
+				for(NodeId i : solver.ucenters) {
+					solver.weight[i] ++;
+				
+					for(NodeId j : solver.Nodes.coverages[i])
+						solver.delta[j] ++;
+				}
+			}
 
 			// 更新
+			for(int k = 0; k < 3; k ++)
+				SL[hash(solution, k)] = true;
+			AL[t.second] = iter + 2;
+			solver.age[t.second] = iter;
 		}
-
-		if(findSolution) {
-			output = move(output);
-			return true;
-		}
-
-		return false;
 
 		// TODO: the following code in this function is for illustration only and can be deleted.
 		// print some information for debugging.
 		cerr << input.nodeNum << '\t' << input.centerNum << endl;
 		for (NodeId n = 0; (restMilliSec() > 0) && (n < input.centerNum); ++n) { cerr << n << '\t' << output[n] << endl; }
+
+		return findSolution;
 	}
 
 	void reduceRadius(PCenter& input, Nodes nodesWithDrop) {

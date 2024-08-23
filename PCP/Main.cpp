@@ -14,6 +14,7 @@ void loadInput(istream& is, PCenter& pc) {
 	is >> pc.nodeNum >> pc.centerNum;
 	pc.coverages.resize(pc.nodeNum);
 	pc.coveredNodeNums.resize(pc.nodeNum);
+
 	for (int i; i < pc.nodeNum; i ++) {
 		NodeId coveredNodeNum;
 		is >> coveredNodeNum;

@@ -39,6 +39,9 @@ struct solverNodes {
 	std::vector<bool> inCenter; // 节点是否被选中为中心点
 	std::vector<int> delta; // 节点delta
 	std::vector<int> age; // 节点年龄
+	UCenters ucenters; // 当前尚未覆盖节点
+	std::vector<int> seriveNodeNums; // 每个点被服务的中心点数
+	std::vector<int> seriveNodeId; // 当节点被服务中心点数为1时，表示为被服务的中心点；否则为-1
 };
 
 
