@@ -69,9 +69,9 @@ int main(int argc, char* argv[]) {
 		int randSeed = atoi(argv[2]);
 		test(cin, cout, secTimeout, randSeed);
 	} else {
-		ifstream ifs("instance/test.txt");
-		ofstream ofs("instance/solution.txt");
-		test(ifs, ofs, 10); // for self-test.
+		ifstream ifs("../instance/test.txt");
+		ofstream ofs("../instance/solution.txt");
+		test(ifs, ofs, 10000); // for self-test.
 	}
 	return 0;
 }
