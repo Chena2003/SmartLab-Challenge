@@ -20,7 +20,7 @@ private:
 	int rand(int lb, int ub) { return uniform_int_distribution<int>(lb, ub - 1)(pseudoRandNumGen); }
 	int rand(int ub) { return uniform_int_distribution<int>(0, ub - 1)(pseudoRandNumGen); }
 
-	int Gamma[3] = {1.3, 1.7, 2.3};
+	double Gamma[3] = {1.3, 1.7, 2.3};
 
 	// 贪婪搜索，得到初始解
 	void greedySearch(Centers& solution, solverNodes& solver, function<long long()> restMilliSec) {
@@ -30,7 +30,7 @@ private:
 
 		for(NodeId k = 0; (restMilliSec() > 0) && (k < nodes.centerNum); k ++) {
 			vector<pair<int, int>> t;
-			vector<int> cnts(0);
+			vector<int> cnts(nodes.nodeNum, 0);
 			
 			for(NodeId i = 0; (restMilliSec() > 0) && (i < nodes.nodeNum); i ++) {
 				cnts[nodes.coveredNodeNums[i]] ++;
@@ -158,7 +158,9 @@ private:
 
 		PCenter nodes = solver.Nodes;
 		UCenters ucenters(solver.ucenters);
-		NodeId k = ucenters[rand(ucenters.size())];
+		auto i = ucenters.begin();
+		advance(i, rand(ucenters.size()));
+		NodeId k = *i;
 		
 		Deltas delta_(solver.delta);
 		for(NodeId i = 0; i < nodes.nodeNum; i ++) {
@@ -202,7 +204,7 @@ private:
 						solver.delta[l] -= solver.weight[v];
 
 				solver.seriveNodeId[v] = i; 
-				solver.ucenters.earse(v);
+				solver.ucenters.erase(v);
 			}
 
 			solver.seriveNodeNums[v] ++;
@@ -332,6 +334,7 @@ public:
 		for (auto n = nodesWithDrop.begin(); n != nodesWithDrop.end(); ++n) {
 			int j = input.coverages[*n].back();
 			input.coverages[*n].pop_back();
+			input.coveredNodeNums[*n] --;
 			input.serives[j][*n] = false;
  		}
 	}

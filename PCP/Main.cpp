@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include <fstream>
 
 #include "PCenter.h"
 
@@ -14,6 +15,7 @@ void loadInput(istream& is, PCenter& pc) {
 	is >> pc.nodeNum >> pc.centerNum;
 	pc.coverages.resize(pc.nodeNum);
 	pc.coveredNodeNums.resize(pc.nodeNum);
+	pc.serives.assign(pc.nodeNum, vector<bool>(pc.nodeNum, 0));
 
 	for (int i; i < pc.nodeNum; i ++) {
 		NodeId coveredNodeNum;
@@ -67,9 +69,9 @@ int main(int argc, char* argv[]) {
 		int randSeed = atoi(argv[2]);
 		test(cin, cout, secTimeout, randSeed);
 	} else {
-		//ifstream ifs("path/to/instance.txt");
-		//ofstream ofs("path/to/solution.txt");
-		//test(ifs, ofs, 10); // for self-test.
+		ifstream ifs("instance/test.txt");
+		ofstream ofs("instance/solution.txt");
+		test(ifs, ofs, 10); // for self-test.
 	}
 	return 0;
 }

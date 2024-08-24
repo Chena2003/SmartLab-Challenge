@@ -21,7 +21,8 @@ namespace szx {
 using NodeId = int;
 using EdgeId = NodeId;
 using Nodes = std::vector<NodeId>;
-using UCenters = unordered_set<int>;
+using Flags = std::vector<bool>;
+using UCenters = std::unordered_set<int>;
 
 
 struct PCenter {
@@ -30,7 +31,7 @@ struct PCenter {
 	std::vector<int> coveredNodeNums; // 每个点覆盖点数
 	std::vector<Nodes> coverages; // `coverages[n]` are the nodes covered by node `n` if node `n` is a center.
 	std::vector<Nodes> nodesWithDrops; // `nodesWithDrops[r]` are the nodes which will drop its farthest covering node in the `r`th radius reduction.
-	std::vector<vector<bool>> serives; // `serivers[n]` 表示节点n可被服务的节点
+	std::vector<Flags> serives; // `serivers[n]` 表示节点n可被服务的节点
 };
 
 struct solverNodes {
@@ -39,7 +40,7 @@ struct solverNodes {
 	std::vector<bool> inCenter; // 节点是否被选中为中心点
 	std::vector<int> delta; // 节点delta
 	std::vector<int> age; // 节点年龄
-	UCenters ucenters; // 当前尚未覆盖节点
+	std::unordered_set<int> ucenters; // 当前尚未覆盖节点
 	std::vector<int> seriveNodeNums; // 每个点被服务的中心点数
 	std::vector<int> seriveNodeId; // 当节点被服务中心点数为1时，表示为被服务的中心点；否则为-1
 };
