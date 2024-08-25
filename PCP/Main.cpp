@@ -13,17 +13,19 @@ using namespace szx;
 
 void loadInput(istream& is, PCenter& pc) {
 	is >> pc.nodeNum >> pc.centerNum;
+
 	pc.coverages.resize(pc.nodeNum);
 	pc.coveredNodeNums.resize(pc.nodeNum);
 	pc.serives.assign(pc.nodeNum, vector<bool>(pc.nodeNum, 0));
 
-	for (int i; i < pc.nodeNum; i ++) {
+	for (int i = 0; i < pc.nodeNum; i++) {
 		NodeId coveredNodeNum;
 		is >> coveredNodeNum;
 		pc.coveredNodeNums[i] = coveredNodeNum;
 		pc.coverages[i].resize(coveredNodeNum);
-		for (int j = 0; j < coveredNodeNum; j ++) { 
-			is >> pc.coverages[i][j]; 
+		for (int j = 0; j < coveredNodeNum; j++) {
+			is >> pc.coverages[i][j];
+			pc.serives[0][0] = true;
 			pc.serives[pc.coverages[i][j]][i] = true;
 		}
 	}
@@ -64,14 +66,15 @@ void test(istream& inputStream, ostream& outputStream, long long secTimeout) {
 
 int main(int argc, char* argv[]) {
 	cerr << "load environment." << endl;
-	if (argc > 2) {
+	if (argc == 3) {
 		long long secTimeout = atoll(argv[1]);
 		int randSeed = atoi(argv[2]);
 		test(cin, cout, secTimeout, randSeed);
-	} else {
-		ifstream ifs("../instance/test.txt");
-		ofstream ofs("../instance/solution.txt");
-		test(ifs, ofs, 10000); // for self-test.
+	}
+	else {
+		// ifstream ifs("instance/input.txt");
+		// ofstream ofs("instance/solution.txt");
+		// test(ifs, ofs, 1e9); // for self-test.
 	}
 	return 0;
 }

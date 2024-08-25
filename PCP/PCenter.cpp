@@ -22,20 +22,53 @@ namespace szx {
 		const double Gamma[3] = { 1.3, 1.7, 2.3 };
 		const int RESSERVE = 1;
 
+		// 寻找只覆盖自己的节点
+		// void initFixCenters(Centers& output, PCenter& input, solverNodes& solver) {
+		// 	int i = 0, j = 0;
+		// 	for (NodeId k = 0; k < input.nodeNum; k++) {
+		// 		if (input.coveredNodeNums[k] == 1 && input.coverages[k][0] == k) {
+		// 			output[i++] = k;
+		// 		}
+		// 		else {
+		// 			solver.nodeMap[j] = k;
+		// 			solver.Nodes.coveredNodeNums[j] = input.coveredNodeNums[k];
+		// 			solver.Nodes.coverages[j] = input.coverages[k];
+		// 			solver.Nodes.serives[j] = input.serives[k];
+		// 			j++;
+		// 		}
+		// 	}
+
+		// 	solver.fixNodeNum = i;
+		// 	solver.Nodes.centerNum = input.centerNum - i;
+		// 	solver.Nodes.nodeNum = j;
+
+		// 	solver.Nodes.coveredNodeNums.resize(j);
+		// 	solver.Nodes.coverages.resize(j);
+		// 	solver.Nodes.serives.resize(j);
+		// }
+
+		// 恢复节点
+		// void restoreNodes(Centers& output, Centers& solution, solverNodes& solver) {
+		// 	int k = solver.fixNodeNum;
+		// 	for (NodeId i : solution) {
+		// 		output[k++] = solver.nodeMap[i];
+		// 	}
+		// }
+
 		// 贪婪搜索，得到初始解
 		void greedySearch(Centers& solution, solverNodes& solver, function<long long()> restMilliSec) {
 			// 每次加入覆盖未覆盖节点最多的节点
 			PCenter nodes(solver.Nodes);
 			UCenters coveredCenters;
 
-			for (NodeId k = 0; (restMilliSec() > RESSERVE) && (k < nodes.centerNum); k ++) {
+			for (NodeId k = 0; (restMilliSec() > RESSERVE) && (k < nodes.centerNum); k++) {
 				vector<pair<int, int>> t;
 				vector<int> cnts(nodes.nodeNum, 0);
 				UCenters coveredCenter;
 
-				for (NodeId i = 0; i < nodes.nodeNum; i ++) {
+				for (NodeId i = 0; i < nodes.nodeNum; i++) {
 					cnts[nodes.coveredNodeNums[i]] ++;
-					t.push_back({nodes.coveredNodeNums[i], i });
+					t.push_back({ nodes.coveredNodeNums[i], i });
 				}
 
 				sort(t.begin(), t.end(), [](const pair<int, int>& a, const pair<int, int>& b) { return a.first > b.first; });
@@ -47,7 +80,7 @@ namespace szx {
 				// 更新
 				for (auto i : nodes.coverages[solution[k]]) {
 					if (coveredCenters.find(i) == coveredCenters.end())
-						coveredCenters.insert(i);
+						coveredCenter.insert(i);
 
 					coveredCenters.insert(i);
 				}
@@ -61,32 +94,14 @@ namespace szx {
 			}
 		}
 
-		// 初始化delta
-		void initDelta(Centers& solution, solverNodes& solver) {
-			PCenter nodes(solver.Nodes);
-			for (NodeId i = 0; i < nodes.nodeNum; i++) {
-				if (solver.inCenter[i]) {
-					for (NodeId j : nodes.coverages[i]) {
-						if (solver.seriveNodes[j].size() == 1)
-							solver.delta[i] += solver.weight[j];
-					}
-				}
-				else {
-					for (NodeId j : nodes.coverages[i])
-						if (solver.seriveNodes[j].size() == 0)
-							solver.delta[i] += solver.weight[j];
-				}
-			}
-		}
-
-		void initseriveNodeNums(Centers& solution, solverNodes& solver) {
-			for (NodeId i : solution) {
-				for (NodeId j : solver.Nodes.coverages[i]) {
+		// 初始化节点被服务的中心点集合
+		void initseriveNodes(Centers& solution, solverNodes& solver) {
+			for (NodeId i : solution)
+				for (NodeId j : solver.Nodes.coverages[i])
 					solver.seriveNodes[j].insert(i);
-				}
-			}
 		}
 
+		// 初始化未覆盖节点
 		void initUCenters(solverNodes& solver) {
 			for (NodeId i = 0; i < solver.Nodes.nodeNum; i++) {
 				if (solver.seriveNodes[i].empty())
@@ -94,15 +109,15 @@ namespace szx {
 			}
 		}
 
-		// U 操作
-		UCenters U(solverNodes& solver) {
-			UCenters ucenter;
-			for (NodeId i = 0; i < solver.Nodes.nodeNum; i++) {
-				if (solver.seriveNodes[i].empty())
-					ucenter.insert(i);
+		// 初始化delta
+		void initDelta(Centers& solution, solverNodes& solver) {
+			PCenter nodes(solver.Nodes);
+			for (NodeId i = 0; i < nodes.nodeNum; i++) {
+				for (NodeId j : nodes.coverages[i]) {
+					if (solver.seriveNodes[j].size() == solver.inCenter[i])
+						solver.delta[i] += solver.weight[j];
+				}
 			}
-
-			return move(ucenter);
 		}
 
 		// 更新delta
@@ -112,57 +127,66 @@ namespace szx {
 					solver.delta[*solver.seriveNodes[v].begin()] -= solver.weight[v];
 					solver.seriveNodes[v].insert(i);
 				}
+
+				solver.ucenters.erase(v);
 			}
 		}
 
 		// 哈希函数
-		uint32_t hash(Centers& solution, int k) {
-			uint32_t tot = 0;
-			for (auto i : solution)
-				tot = (((uint32_t)pow(i, Gamma[k]) % (uint32_t)MODNUM) + tot) % (uint32_t)MODNUM;
-
-			return tot;
+		vector<uint32_t> hash(Centers& solution) {
+			vector<uint32_t> tot(3, 0);
+			for (auto i : solution) {
+				tot[0] = (((uint32_t)pow(i, Gamma[0]) % (uint32_t)MODNUM) + tot[0]) % (uint32_t)MODNUM;
+				tot[1] = (((uint32_t)pow(i, Gamma[1]) % (uint32_t)MODNUM) + tot[1]) % (uint32_t)MODNUM;
+				tot[2] = (((uint32_t)pow(i, Gamma[2]) % (uint32_t)MODNUM) + tot[2]) % (uint32_t)MODNUM;
+			}
+			return move(tot);
 		}
 
 		// 判断swap(i, j)是否禁忌
-		// iter > AL_j
-		// 判断solution是否出现过
+		// 1. 判断iter > AL_j
+		// 2. 判断solution是否出现过
 		bool Tabu(Centers& solution, vector<bool>& SL, vector<int>& AL, int iter, int i, int j) {
-			if (iter > AL[j])
-				return false;
+			if (iter <= AL[j])
+				return true;
 
-			for (int k = 0; k < 3; k++) {
-				if (!SL[hash(solution, k)]) {
-					return false;
-				}
-			}
-
-			return true;
+			vector<uint32_t> t = hash(solution);
+			return SL[t[0]] & SL[t[1]] & SL[t[2]];
 		}
 
+		// 寻找最佳交换swap(i, j)
 		pair<int, int> findPair(Centers& solution, solverNodes& solver, vector<bool>& SL, vector<int>& AL, int iter) {
 			pair<int, int> bestpair = { -1, -1 };
 			uint32_t obj = INTMAX;
 
-			solverNodes solver_(solver);
 			PCenter nodes = solver.Nodes;
 			UCenters ucenters(solver.ucenters);
-			auto i = ucenters.begin();
-			advance(i, rand(ucenters.size()));
-			NodeId k = *i;
 
-			Deltas delta_(solver.delta);
+			// 随机选择未覆盖节点
+			auto t = ucenters.begin();
+			advance(t, rand(ucenters.size()));
+			NodeId k = *t;
+
+			// 计算f(x)
+			uint32_t fx = 0;
+			for (auto i : ucenters)
+				fx += solver.weight[i];
+
+			solverNodes solver_(solver);
 			for (NodeId i = 0; i < nodes.nodeNum; i++) {
 				if (nodes.serives[k][i] == false)
 					continue;
 
 				updateDelta(solution, solver_, i);
 
-				for (auto j : solution) {
+				for (auto t = solution.begin(); t != solution.end(); t++) {
+					NodeId j = *t;
+					*t = i;
+
 					if (Tabu(solution, SL, AL, iter, i, j))
 						continue;
 
-					uint32_t u = obj - solver_.delta[i] + solver_.delta[j];
+					uint32_t u = fx - solver_.delta[i] + solver_.delta[j];
 
 					if (u < obj) {
 						obj = u;
@@ -171,9 +195,11 @@ namespace szx {
 					else if (u == obj && solver_.age[j] < solver_.age[bestpair.second]) {
 						bestpair = { i, j };
 					}
+
+					*t = j;
 				}
 
-				solver_.delta = delta_;
+				solver_ = solver;
 			}
 
 			return bestpair;
@@ -210,11 +236,10 @@ namespace szx {
 			// 关闭j
 			for (NodeId v : solver.Nodes.coverages[j]) {
 				solver.seriveNodes[v].erase(j);
-
-				if (solver.seriveNodes[v].size() == 2) {
+				if (solver.seriveNodes[v].size() == 1) {
 					solver.delta[*solver.seriveNodes[v].begin()] += solver.weight[v];
 				}
-				else if (solver.seriveNodes[v].size() == 1) {
+				else if (solver.seriveNodes[v].size() == 0) {
 					for (NodeId l = 0; l < solver.Nodes.nodeNum; l++)
 						if (l != j && solver.Nodes.serives[v][l] == true)
 							solver.delta[l] += solver.weight[v];
@@ -240,13 +265,15 @@ namespace szx {
 		bool coverAllNodesUnderFixedRadius(Centers& output, PCenter& input, function<long long()> restMilliSec, int seed) {
 			solverNodes solver; // 初始化解结构
 			solver.Nodes = input;
+
+			// initFixCenters(output, input, solver); // 寻找只覆盖自己的节点
+
 			solver.weight.assign(solver.Nodes.nodeNum, 1); // 初始化节点权重为1
 			solver.inCenter.assign(solver.Nodes.nodeNum, 0);  // 开始所有点都没有加入中心点
 			solver.age.assign(solver.Nodes.nodeNum, 0); // 初始化节点年龄为0
 			solver.delta.assign(solver.Nodes.nodeNum, 0); // 初始化节点delta为0
-			solver.seriveNodes.resize(solver.Nodes.nodeNum);
+			solver.seriveNodes.resize(solver.Nodes.nodeNum); // 初始化服务节点
 
-			// initFixCenterx(); 寻找只覆盖器自己的节点
 
 			vector<bool> SL(MODNUM, 0);       // 初始化SL
 			vector<int> AL(solver.Nodes.nodeNum, 0); // 初始化AL
@@ -254,10 +281,11 @@ namespace szx {
 			Centers solution(solver.Nodes.centerNum);
 			greedySearch(solution, solver, restMilliSec);// 求解初始解
 
-			initseriveNodeNums(solution, solver); // 初始化节点被服务中心点数
+			initseriveNodes(solution, solver); // 初始化节点被服务中心点数
 			initUCenters(solver); // 初始化ucenter
 
 			if (solver.ucenters.size() == 0) {
+				// restoreNodes(output, solution, solver);
 				output = solution;
 				return true;
 			}
@@ -268,11 +296,13 @@ namespace szx {
 			Centers solution_(solution), bestsolution(solution);
 			UCenters bestUCenters(solver.ucenters);
 			for (int iter = 1; restMilliSec() > RESSERVE; iter++) {
+				// 寻找最佳交换
 				pair<int, int> t = findPair(solution_, solver, SL, AL, iter);
 
 				if (t.first == -1 && t.second == -1)
 					break;
 
+				// 交换
 				makeMove(solution, solver, t.first, t.second);
 
 				// 比较
@@ -281,7 +311,8 @@ namespace szx {
 					bestUCenters = solver.ucenters;
 
 					if (bestUCenters.size() == 0) {
-						output = bestsolution;
+						 // restoreNodes(output, bestsolution, solver);
+						 output = bestsolution;
 						findSolution = true;
 						break;
 					}
@@ -296,16 +327,13 @@ namespace szx {
 				}
 
 				// 更新
+				vector<uint32_t> hashNum = hash(solution);
 				for (int k = 0; k < 3; k++)
-					SL[hash(solution, k)] = true;
+					SL[hashNum[k]] = true;
 				AL[t.second] = iter + 2;
 				solver.age[t.second] = iter;
+				solution_ = solution;
 			}
-
-			// TODO: the following code in this function is for illustration only and can be deleted.
-			// print some information for debugging.
-//			cerr << input.nodeNum << '\t' << input.centerNum << endl;
-//			for (NodeId n = 0; (restMilliSec() > 0) && (n < input.centerNum); ++n) { cerr << n << '\t' << output[n] << endl; }
 
 			return findSolution;
 		}
