@@ -33,6 +33,9 @@ namespace szx {
 		std::vector<Nodes> coverages; // `coverages[n]` are the nodes covered by node `n` if node `n` is a center.
 		std::vector<Nodes> nodesWithDrops; // `nodesWithDrops[r]` are the nodes which will drop its farthest covering node in the `r`th radius reduction.
 		std::vector<Flags> serives; // `serivers[i][j]` 表示节点i可被节点j服务
+
+		NodeId fixNum; // 固定点数
+		std::vector<bool> fixNodes; // 固定点集合
 	};
 
 	struct solverNodes {
@@ -43,9 +46,6 @@ namespace szx {
 		std::vector<int> age; // 节点年龄
 		std::unordered_set<int> ucenters; // 当前尚未覆盖节点
 		std::vector<std::unordered_set<int>> seriveNodes; // 节点被服务的中心点集合
-
-		// NodeId fixNodeNum; // 固定点数
-		// std::unordered_map<int, int> nodeMap; // 存储节点之间映射关系
 	};
 
 

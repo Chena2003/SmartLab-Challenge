@@ -17,7 +17,9 @@ void loadInput(istream& is, PCenter& pc) {
 	pc.coverages.resize(pc.nodeNum);
 	pc.coveredNodeNums.resize(pc.nodeNum);
 	pc.serives.assign(pc.nodeNum, vector<bool>(pc.nodeNum, 0));
+	pc.fixNodes.assign(pc.nodeNum, 0);
 
+	int t = 0;
 	for (int i = 0; i < pc.nodeNum; i++) {
 		NodeId coveredNodeNum;
 		is >> coveredNodeNum;
@@ -28,7 +30,13 @@ void loadInput(istream& is, PCenter& pc) {
 			pc.serives[0][0] = true;
 			pc.serives[pc.coverages[i][j]][i] = true;
 		}
+
+		if (coveredNodeNum == 1 && pc.coverages[i][0] == i) {
+			pc.fixNodes[i] = true;
+			t++;
+		}
 	}
+	pc.fixNum = t;
 
 	EdgeId minEdgeLenRank;
 	EdgeId maxEdgeLenRank;
@@ -63,18 +71,17 @@ void test(istream& inputStream, ostream& outputStream, long long secTimeout) {
 	return test(inputStream, outputStream, secTimeout, static_cast<int>(time(nullptr) + clock()));
 }
 
-
 int main(int argc, char* argv[]) {
 	cerr << "load environment." << endl;
-	if (argc == 3) {
+	if (argc > 2) {
 		long long secTimeout = atoll(argv[1]);
 		int randSeed = atoi(argv[2]);
 		test(cin, cout, secTimeout, randSeed);
 	}
 	else {
-		// ifstream ifs("instance/input.txt");
-		// ofstream ofs("instance/solution.txt");
-		// test(ifs, ofs, 1e9); // for self-test.
+		ifstream ifs("instance/input.txt");
+		ofstream ofs("instance/solution.txt");
+		test(ifs, ofs, 1000000); // for self-test.
 	}
 	return 0;
 }
