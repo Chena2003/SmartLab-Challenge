@@ -35,29 +35,31 @@ namespace szx {
 		void greedySearch(Centers& solution, solverNodes& solver, function<long long()> restMilliSec) {
 			// 每次加入覆盖未覆盖节点最多的节点
 			PCenter nodes(solver.Nodes);
-			UCenters coveredCenters;
+			Flags coveredCenters(nodes.nodeNum, 0);
 
 			NodeId k;
 			for (k = 0; (restMilliSec() > RESSERVE) && (k < nodes.centerNum); k++) {
 				if (k < solver.Nodes.fixNum) {
 					solver.inCenter[solution[k]] = true;
-					coveredCenters.insert(solution[k]);
+					coveredCenters[solution[k]] = true;
 					nodes.coveredNodeNums[solution[k]]--;
 					continue;
 				}
 
-				// 覆盖全部节点，直接退出
-				if (coveredCenters.size() == nodes.nodeNum)
-					break;
-
 				vector<pair<int, int>> t;
 				vector<int> cnts(nodes.nodeNum, 0);
-				UCenters coveredCenter;
 
 				for (NodeId i = 0; i < nodes.nodeNum; i++) {
+					if (nodes.coveredNodeNums[i] == 0)
+						continue;
+
 					cnts[nodes.coveredNodeNums[i]] ++;
 					t.push_back({ nodes.coveredNodeNums[i], i });
 				}
+
+				// 覆盖全部节点，直接退出
+				if (t.empty())
+					break;
 
 				sort(t.begin(), t.end(), [](const pair<int, int>& a, const pair<int, int>& b) { return a.first > b.first; });
 
@@ -67,17 +69,14 @@ namespace szx {
 
 				// 更新
 				for (auto i : nodes.coverages[solution[k]]) {
-					if (coveredCenters.find(i) == coveredCenters.end())
-						coveredCenter.insert(i);
+					if (coveredCenters[i] == true)
+						continue;
 
-					coveredCenters.insert(i);
-				}
+					coveredCenters[i] = true;
 
-				for (NodeId i = 0; i < nodes.nodeNum; i++) {
-					for (auto j : nodes.coverages[i]) {
-						if (coveredCenter.find(j) != coveredCenter.end())
-							nodes.coveredNodeNums[i] --;
-					}
+					for (NodeId j = 0; j < nodes.nodeNum; j++)
+						if (nodes.serives[i][j] == true)
+							nodes.coveredNodeNums[j] --;
 				}
 			}
 
@@ -92,7 +91,6 @@ namespace szx {
 					k++;
 				}
 			}
-
 		}
 
 		// 初始化节点被服务的中心点集合
@@ -141,7 +139,7 @@ namespace szx {
 				tot[1] = (((uint32_t)pow(i, Gamma[1]) % (uint32_t)MODNUM) + tot[1]) % (uint32_t)MODNUM;
 				tot[2] = (((uint32_t)pow(i, Gamma[2]) % (uint32_t)MODNUM) + tot[2]) % (uint32_t)MODNUM;
 			}
-			return move(tot);
+			return tot;
 		}
 
 		// 判断swap(i, j)是否禁忌

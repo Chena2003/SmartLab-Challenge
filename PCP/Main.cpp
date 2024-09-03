@@ -5,6 +5,7 @@
 
 #include "PCenter.h"
 
+// #define __ENABLE_DEBUG__ 
 
 using namespace std;
 using namespace std::chrono;
@@ -69,6 +70,7 @@ void test(istream& inputStream, ostream& outputStream, long long secTimeout, int
 	cerr << "save output." << endl;
 	saveOutput(outputStream, centers);
 
+#ifdef __ENABLE_DEBUG__
 	// 输出运行时间
 	auto duration = duration_cast<milliseconds>(end - start);
 	cerr << "Execution time: " << duration.count() << "ms" << endl;
@@ -92,6 +94,8 @@ void test(istream& inputStream, ostream& outputStream, long long secTimeout, int
 			cerr << i << endl;
 		}
 	}
+#endif
+
 }
 
 void test(istream& inputStream, ostream& outputStream, long long secTimeout) {
