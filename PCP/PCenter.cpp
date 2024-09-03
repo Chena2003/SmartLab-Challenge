@@ -300,7 +300,8 @@ namespace szx {
 						break;
 					}
 				}
-				else if (solver.ucenters.size() > bestUCenters.size()) {
+				// else if (solver.ucenters.size() > bestUCenters.size()) {
+				else {
 					for (NodeId i : solver.ucenters) {
 						solver.weight[i] ++;
 
