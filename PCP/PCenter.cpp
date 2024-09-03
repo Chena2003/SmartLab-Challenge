@@ -19,8 +19,8 @@ namespace szx {
 		int rand(int lb, int ub) { return uniform_int_distribution<int>(lb, ub - 1)(pseudoRandNumGen); }
 		int rand(int ub) { return uniform_int_distribution<int>(0, ub - 1)(pseudoRandNumGen); }
 
-		const double Gamma[3] = { 1.3, 1.7, 2.3 };
-		const int RESSERVE = 1;
+		const double Gamma[3] = { 1.3, 1.7, 2.3 }; // 哈希参数
+		const int RESSERVE = 1;  // 预留1ms退出时间
 
 		// 寻找只覆盖自己的节点
 		void initOutput(Centers& output, PCenter& input) {
@@ -37,12 +37,19 @@ namespace szx {
 			PCenter nodes(solver.Nodes);
 			UCenters coveredCenters;
 
-			for (NodeId k = 0; (restMilliSec() > RESSERVE) && (k < nodes.centerNum); k++) {
+			NodeId k;
+			for (k = 0; (restMilliSec() > RESSERVE) && (k < nodes.centerNum); k++) {
 				if (k < solver.Nodes.fixNum) {
+					solver.inCenter[solution[k]] = true;
+					coveredCenters.insert(solution[k]);
 					nodes.coveredNodeNums[solution[k]]--;
 					continue;
 				}
-				
+
+				// 覆盖全部节点，直接退出
+				if (coveredCenters.size() == nodes.nodeNum)
+					break;
+
 				vector<pair<int, int>> t;
 				vector<int> cnts(nodes.nodeNum, 0);
 				UCenters coveredCenter;
@@ -73,6 +80,19 @@ namespace szx {
 					}
 				}
 			}
+
+			// 有多余空中心点情况
+			while ((restMilliSec() > RESSERVE) && k < nodes.centerNum) {
+				int choice = rand(nodes.nodeNum);
+
+				if (!solver.inCenter[choice]) {
+					solution[k] = choice;
+					solver.inCenter[choice] = true;
+
+					k++;
+				}
+			}
+
 		}
 
 		// 初始化节点被服务的中心点集合
@@ -121,7 +141,7 @@ namespace szx {
 				tot[1] = (((uint32_t)pow(i, Gamma[1]) % (uint32_t)MODNUM) + tot[1]) % (uint32_t)MODNUM;
 				tot[2] = (((uint32_t)pow(i, Gamma[2]) % (uint32_t)MODNUM) + tot[2]) % (uint32_t)MODNUM;
 			}
-			return tot;
+			return move(tot);
 		}
 
 		// 判断swap(i, j)是否禁忌
@@ -158,15 +178,17 @@ namespace szx {
 				if (nodes.serives[k][i] == false)
 					continue;
 
+				// 将节点i加入中心点
 				updateDelta(solver_, i);
 
 				for (auto t = solution.begin(); t != solution.end(); t++) {
-					if (solver.Nodes.fixNodes[*t])
+					if (solver.Nodes.fixNodes[*t]) // 固定节点不能换出
 						continue;
 
-					NodeId j = *t;
+					NodeId j = *t; // 交换i, j
 					*t = i;
 
+					// 判断swap(i, j)是否为禁忌
 					if (Tabu(solution, SL, AL, iter, i, j)) {
 						*t = j;
 						continue;
@@ -182,7 +204,7 @@ namespace szx {
 						bestpair = { i, j };
 					}
 
-					*t = j;
+					*t = j; // 恢复
 				}
 
 				solver_ = solver;
@@ -195,10 +217,10 @@ namespace szx {
 		void makeMove(Centers& solution, solverNodes& solver, int i, int j) {
 			// 加入i
 			for (NodeId v : solver.Nodes.coverages[i]) {
-				if (solver.seriveNodes[v].size() == 1) {
+				if (solver.seriveNodes[v].size() == 1) { // 节点v只有一个中心点
 					solver.delta[*solver.seriveNodes[v].begin()] -= solver.weight[v];
 				}
-				else if (solver.seriveNodes[v].size() == 0) {
+				else if (solver.seriveNodes[v].size() == 0) { // 节点v没有中心点
 					for (NodeId l = 0; l < solver.Nodes.nodeNum; l++)
 						if (l != i && solver.Nodes.serives[v][l] == true)
 							solver.delta[l] -= solver.weight[v];
@@ -223,10 +245,10 @@ namespace szx {
 			for (NodeId v : solver.Nodes.coverages[j]) {
 				solver.seriveNodes[v].erase(j);
 
-				if (solver.seriveNodes[v].size() == 1) {
+				if (solver.seriveNodes[v].size() == 1) { // 节点v有两个中心点
 					solver.delta[*solver.seriveNodes[v].begin()] += solver.weight[v];
 				}
-				else if (solver.seriveNodes[v].size() == 0) {
+				else if (solver.seriveNodes[v].size() == 0) { // 节点v只有j中心点
 					for (NodeId l = 0; l < solver.Nodes.nodeNum; l++)
 						if (l != j && solver.Nodes.serives[v][l] == true)
 							solver.delta[l] += solver.weight[v];
@@ -264,7 +286,7 @@ namespace szx {
 			vector<int> AL(solver.Nodes.nodeNum, 0); // 初始化AL
 
 			Centers solution(output);
-			greedySearch(solution, solver, restMilliSec);// 求解初始解
+			greedySearch(solution, solver, restMilliSec); // 求解初始解
 
 			initseriveNodes(solution, solver); // 初始化节点被服务中心点数
 			initUCenters(solver); // 初始化ucenter
@@ -300,7 +322,6 @@ namespace szx {
 						break;
 					}
 				}
-				// else if (solver.ucenters.size() > bestUCenters.size()) {
 				else {
 					for (NodeId i : solver.ucenters) {
 						solver.weight[i] ++;

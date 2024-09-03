@@ -70,8 +70,8 @@ void test(istream& inputStream, ostream& outputStream, long long secTimeout, int
 	saveOutput(outputStream, centers);
 
 	// 输出运行时间
-	auto duration = duration_cast<seconds>(end - start);
-	cerr << "Execution time: " << duration.count() << endl;
+	auto duration = duration_cast<milliseconds>(end - start);
+	cerr << "Execution time: " << duration.count() << "ms" << endl;
 
 	// 输出结果节点
 	cerr << "Solution centers: " << endl;
