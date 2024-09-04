@@ -25,7 +25,7 @@ namespace szx {
 		// 寻找只覆盖自己的节点
 		void initOutput(Centers& output, PCenter& input) {
 			for (NodeId i = 0, k = 0; i < input.nodeNum; i++) {
-				if (input.fixNodes[i]) {
+				if (input.fixNodes.Nodes[i]) {
 					output[k++] = i;
 				}
 			}
@@ -39,7 +39,7 @@ namespace szx {
 
 			NodeId k;
 			for (k = 0; (restMilliSec() > RESSERVE) && (k < nodes.centerNum); k++) {
-				if (k < solver.Nodes.fixNum) {
+				if (k < solver.Nodes.fixNodes.Num) {
 					solver.inCenter[solution[k]] = true;
 					coveredCenters[solution[k]] = true;
 					nodes.coveredNodeNums[solution[k]]--;
@@ -180,7 +180,7 @@ namespace szx {
 				updateDelta(solver_, i);
 
 				for (auto t = solution.begin(); t != solution.end(); t++) {
-					if (solver.Nodes.fixNodes[*t]) // 固定节点不能换出
+					if (solver.Nodes.fixNodes.Nodes[*t]) // 固定节点不能换出
 						continue;
 
 					NodeId j = *t; // 交换i, j

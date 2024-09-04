@@ -17,8 +17,8 @@ void loadInput(istream& is, PCenter& pc) {
 
 	pc.coverages.resize(pc.nodeNum);
 	pc.coveredNodeNums.resize(pc.nodeNum);
-	pc.serives.assign(pc.nodeNum, vector<bool>(pc.nodeNum, 0));
-	pc.fixNodes.assign(pc.nodeNum, 0);
+	pc.serives.assign(pc.nodeNum, dynamic_bitset(pc.nodeNum, 0));
+	pc.fixNodes.Nodes.resize(pc.nodeNum, 0);
 
 	int t = 0;
 	for (int i = 0; i < pc.nodeNum; i++) {
@@ -33,22 +33,11 @@ void loadInput(istream& is, PCenter& pc) {
 		}
 
 		if (coveredNodeNum == 1 && pc.coverages[i][0] == i) {
-			pc.fixNodes[i] = true;
+			pc.fixNodes.Nodes[i] = true;
 			t++;
 		}
 	}
-	pc.fixNum = t;
-
-	EdgeId minEdgeLenRank;
-	EdgeId maxEdgeLenRank;
-	is >> maxEdgeLenRank >> minEdgeLenRank;
-	pc.nodesWithDrops.resize(maxEdgeLenRank - minEdgeLenRank);
-	for (auto r = pc.nodesWithDrops.begin(); r != pc.nodesWithDrops.end(); ++r) {
-		NodeId nodeNumToDrop;
-		is >> nodeNumToDrop;
-		r->resize(nodeNumToDrop);
-		for (auto node = r->begin(); node != r->end(); ++node) { is >> *node; }
-	}
+	pc.fixNodes.Num = t;
 }
 
 void saveOutput(ostream& os, Centers& centers) {

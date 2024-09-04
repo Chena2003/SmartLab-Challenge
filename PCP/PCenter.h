@@ -11,6 +11,7 @@
 #include <vector>
 #include <functional>
 #include <unordered_set>
+#include <boost/dynamic_bitset.hpp>
 
 namespace szx {
 
@@ -22,7 +23,12 @@ namespace szx {
 	using Nodes = std::vector<NodeId>;
 	using Flags = std::vector<bool>;
 	using UCenters = std::unordered_set<int>;
+	using dynamic_bitset = boost::dynamic_bitset<>;
 
+	struct SNodes { // 取代unordered_set
+		NodeId Num; // 数量
+		dynamic_bitset Nodes; // 点集合
+	};
 
 	struct PCenter {
 		NodeId nodeNum;
@@ -30,10 +36,9 @@ namespace szx {
 		std::vector<int> coveredNodeNums; // 每个点覆盖点数
 		std::vector<Nodes> coverages; // `coverages[n]` are the nodes covered by node `n` if node `n` is a center.
 		std::vector<Nodes> nodesWithDrops; // `nodesWithDrops[r]` are the nodes which will drop its farthest covering node in the `r`th radius reduction.
-		std::vector<Flags> serives; // `serivers[i][j]` 表示节点i可被节点j服务
+		std::vector<dynamic_bitset> serives; // `serivers[i][j]` 表示节点i可被节点j服务
 
-		NodeId fixNum; // 固定点数
-		std::vector<bool> fixNodes; // 固定点集合
+		SNodes fixNodes;
 	};
 
 	struct solverNodes {
