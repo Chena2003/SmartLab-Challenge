@@ -5,7 +5,6 @@
 
 #include "PCenter.h"
 
-// #define __ENABLE_DEBUG__ 
 
 using namespace std;
 using namespace std::chrono;
@@ -17,7 +16,6 @@ void loadInput(istream& is, PCenter& pc) {
 
 	pc.coverages.resize(pc.nodeNum);
 	pc.coveredNodeNums.resize(pc.nodeNum);
-	pc.serives.assign(pc.nodeNum, dynamic_bitset(pc.nodeNum, 0));
 	pc.fixNodes.Nodes.resize(pc.nodeNum, 0);
 
 	int t = 0;
@@ -26,11 +24,8 @@ void loadInput(istream& is, PCenter& pc) {
 		is >> coveredNodeNum;
 		pc.coveredNodeNums[i] = coveredNodeNum;
 		pc.coverages[i].resize(coveredNodeNum);
-		for (int j = 0; j < coveredNodeNum; j++) {
+		for (int j = 0; j < coveredNodeNum; j++) 
 			is >> pc.coverages[i][j];
-			pc.serives[0][0] = true;
-			pc.serives[pc.coverages[i][j]][i] = true;
-		}
 
 		if (coveredNodeNum == 1 && pc.coverages[i][0] == i) {
 			pc.fixNodes.Nodes[i] = true;
@@ -38,6 +33,17 @@ void loadInput(istream& is, PCenter& pc) {
 		}
 	}
 	pc.fixNodes.Num = t;
+
+	EdgeId minEdgeLenRank;
+	EdgeId maxEdgeLenRank;
+	is >> maxEdgeLenRank >> minEdgeLenRank;
+	pc.nodesWithDrops.resize(maxEdgeLenRank - minEdgeLenRank);
+	for (auto r = pc.nodesWithDrops.begin(); r != pc.nodesWithDrops.end(); ++r) {
+		NodeId nodeNumToDrop;
+		is >> nodeNumToDrop;
+		r->resize(nodeNumToDrop);
+		for (auto node = r->begin(); node != r->end(); ++node) { is >> *node; }
+	}
 }
 
 void saveOutput(ostream& os, Centers& centers) {
@@ -59,7 +65,6 @@ void test(istream& inputStream, ostream& outputStream, long long secTimeout, int
 	cerr << "save output." << endl;
 	saveOutput(outputStream, centers);
 
-#ifdef __ENABLE_DEBUG__
 	// 输出运行时间
 	auto duration = duration_cast<milliseconds>(end - start);
 	cerr << "Execution time: " << duration.count() << "ms" << endl;
@@ -74,17 +79,19 @@ void test(istream& inputStream, ostream& outputStream, long long secTimeout, int
 	// 输出未覆盖节点
 	cerr << "Uncovered centers: " << endl;
 	vector<bool> flag(pc.nodeNum, 0);
-	for (NodeId i : centers) 
-		for (NodeId j : pc.coverages[i]) 
+	for (NodeId i : centers)
+		for (NodeId j : pc.coverages[i])
 			flag[j] = true;
 
+	int tot = 0;
 	for (NodeId i = 0; i < pc.nodeNum; i++) {
 		if (!flag[i]) {
-			cerr << i << endl;
+			// cerr << i << endl;
+			tot++;
 		}
 	}
-#endif
 
+	cerr << "uncovered center num: " << tot << endl;
 }
 
 void test(istream& inputStream, ostream& outputStream, long long secTimeout) {
@@ -99,9 +106,9 @@ int main(int argc, char* argv[]) {
 		test(cin, cout, secTimeout, randSeed);
 	}
 	else {
-		ifstream ifs("instance/input.txt");
+		ifstream ifs("instance/input2.txt");
 		ofstream ofs("instance/solution.txt");
-		test(ifs, ofs, 1000000); // for self-test.
+		test(ifs, ofs, 100000); // for self-test.
 	}
 	return 0;
 }

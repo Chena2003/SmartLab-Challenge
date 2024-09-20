@@ -11,8 +11,6 @@
 #include <vector>
 #include <functional>
 #include <unordered_set>
-#include <boost/dynamic_bitset.hpp>
-
 namespace szx {
 
 #define INTMAX 1e9 + 10
@@ -23,11 +21,10 @@ namespace szx {
 	using Nodes = std::vector<NodeId>;
 	using Flags = std::vector<bool>;
 	using UCenters = std::unordered_set<int>;
-	using dynamic_bitset = boost::dynamic_bitset<>;
 
 	struct SNodes { // 取代unordered_set
 		NodeId Num; // 数量
-		dynamic_bitset Nodes; // 点集合
+		Flags Nodes; // 点集合
 	};
 
 	struct PCenter {
@@ -36,7 +33,6 @@ namespace szx {
 		std::vector<int> coveredNodeNums; // 每个点覆盖点数
 		std::vector<Nodes> coverages; // `coverages[n]` are the nodes covered by node `n` if node `n` is a center.
 		std::vector<Nodes> nodesWithDrops; // `nodesWithDrops[r]` are the nodes which will drop its farthest covering node in the `r`th radius reduction.
-		std::vector<dynamic_bitset> serives; // `serivers[i][j]` 表示节点i可被节点j服务
 
 		SNodes fixNodes;
 	};
@@ -47,8 +43,10 @@ namespace szx {
 		std::vector<bool> inCenter; // 节点是否被选中为中心点
 		std::vector<int> delta; // 节点delta
 		std::vector<int> age; // 节点年龄
-		std::unordered_set<int> ucenters; // 当前尚未覆盖节点
-		std::vector<std::unordered_set<int>> seriveNodes; // 节点被服务的中心点集合
+
+		std::vector<int> ucenters; // 当前尚未覆盖节点
+		std::vector<int> seriveNodeNums; // 节点被服务的中心点数量
+		std::vector<int> seriveNodes; // 节点被服务的唯一中心点 
 	};
 
 
