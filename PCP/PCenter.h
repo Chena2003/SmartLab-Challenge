@@ -11,6 +11,11 @@
 #include <vector>
 #include <functional>
 #include <unordered_set>
+#include <set>
+//#include <boost/dynamic_bitset.hpp>
+
+#include "doublevector.h"
+
 namespace szx {
 
 #define INTMAX 1e9 + 10
@@ -20,17 +25,19 @@ namespace szx {
 	using EdgeId = NodeId;
 	using Nodes = std::vector<NodeId>;
 	using Flags = std::vector<bool>;
-	using UCenters = std::unordered_set<int>;
+	//using UCenters = std::unordered_set<int>;
+	using UCenters = std::set<int>;
+	//using dynamic_bitset = boost::dynamic_bitset<>;
 
-	struct SNodes { // å–ä»£unordered_set
-		NodeId Num; // æ•°é‡
-		Flags Nodes; // ç‚¹é›†åˆ
+	struct SNodes { // È¡´úunordered_set
+		NodeId Num; // ÊıÁ¿
+		Flags Nodes; // µã¼¯ºÏ
 	};
 
 	struct PCenter {
 		NodeId nodeNum;
 		NodeId centerNum;
-		std::vector<int> coveredNodeNums; // æ¯ä¸ªç‚¹è¦†ç›–ç‚¹æ•°
+		std::vector<int> coveredNodeNums; // Ã¿¸öµã¸²¸ÇµãÊı
 		std::vector<Nodes> coverages; // `coverages[n]` are the nodes covered by node `n` if node `n` is a center.
 		std::vector<Nodes> nodesWithDrops; // `nodesWithDrops[r]` are the nodes which will drop its farthest covering node in the `r`th radius reduction.
 
@@ -39,14 +46,20 @@ namespace szx {
 
 	struct solverNodes {
 		struct PCenter Nodes;
-		std::vector<int> weight; // èŠ‚ç‚¹çš„æƒé‡
-		std::vector<bool> inCenter; // èŠ‚ç‚¹æ˜¯å¦è¢«é€‰ä¸­ä¸ºä¸­å¿ƒç‚¹
-		std::vector<int> delta; // èŠ‚ç‚¹delta
-		std::vector<int> age; // èŠ‚ç‚¹å¹´é¾„
+		std::vector<int> weight; // ½ÚµãµÄÈ¨ÖØ
+		std::vector<bool> inCenter; // ½ÚµãÊÇ·ñ±»Ñ¡ÖĞÎªÖĞĞÄµã
+		std::vector<int> delta; // ½Úµãdelta
+		std::vector<int> age; // ½ÚµãÄêÁä
+		//UCenters ucenters; // µ±Ç°ÉĞÎ´¸²¸Ç½Úµã
+		//std::vector<UCenters> seriveNodes; // ½Úµã±»·şÎñµÄÖĞĞÄµã¼¯ºÏ
 
-		std::vector<int> ucenters; // å½“å‰å°šæœªè¦†ç›–èŠ‚ç‚¹
-		std::vector<int> seriveNodeNums; // èŠ‚ç‚¹è¢«æœåŠ¡çš„ä¸­å¿ƒç‚¹æ•°é‡
-		std::vector<int> seriveNodes; // èŠ‚ç‚¹è¢«æœåŠ¡çš„å”¯ä¸€ä¸­å¿ƒç‚¹ 
+		//doublevector ucenters_test;
+		doublevector ucenters;
+		std::vector<doublevector> seriveNodes; // ½Úµã±»·şÎñµÄÖĞĞÄµã¼¯ºÏ
+
+		//std::vector<int> ucenters; // µ±Ç°ÉĞÎ´¸²¸Ç½Úµã
+		std::vector<int> seriveNodeNums; // ½Úµã±»·şÎñµÄÖĞĞÄµãÊıÁ¿
+		//std::vector<int> seriveNodes; // ½Úµã±»·şÎñµÄÎ¨Ò»ÖĞĞÄµã 
 	};
 
 

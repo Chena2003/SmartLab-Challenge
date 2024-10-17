@@ -12,6 +12,11 @@ using namespace szx;
 
 
 void loadInput(istream& is, PCenter& pc) {
+	// ¼ÓËÙÊäÈë
+	ios::sync_with_stdio(false); // ¹Ø±ÕÍ¬²½
+	cin.tie(0);
+	cout.tie(0);
+
 	is >> pc.nodeNum >> pc.centerNum;
 
 	pc.coverages.resize(pc.nodeNum);
@@ -24,7 +29,7 @@ void loadInput(istream& is, PCenter& pc) {
 		is >> coveredNodeNum;
 		pc.coveredNodeNums[i] = coveredNodeNum;
 		pc.coverages[i].resize(coveredNodeNum);
-		for (int j = 0; j < coveredNodeNum; j++) 
+		for (int j = 0; j < coveredNodeNum; j++)
 			is >> pc.coverages[i][j];
 
 		if (coveredNodeNum == 1 && pc.coverages[i][0] == i) {
@@ -55,6 +60,11 @@ void test(istream& inputStream, ostream& outputStream, long long secTimeout, int
 	PCenter pc;
 	loadInput(inputStream, pc);
 
+	vector<Nodes> coverages;
+	int nodeNum;
+	coverages = pc.coverages;
+	nodeNum = pc.nodeNum;
+
 	cerr << "solve." << endl;
 	steady_clock::time_point start = steady_clock::now();
 	steady_clock::time_point endTime = steady_clock::now() + seconds(secTimeout);
@@ -65,28 +75,28 @@ void test(istream& inputStream, ostream& outputStream, long long secTimeout, int
 	cerr << "save output." << endl;
 	saveOutput(outputStream, centers);
 
-	// è¾“å‡ºè¿è¡Œæ—¶é—´
+	// Êä³öÔËÐÐÊ±¼ä
 	auto duration = duration_cast<milliseconds>(end - start);
 	cerr << "Execution time: " << duration.count() << "ms" << endl;
 
-	// è¾“å‡ºç»“æžœèŠ‚ç‚¹
+	// Êä³ö½á¹û½Úµã
 	cerr << "Solution centers: " << endl;
 	for (NodeId i : centers) {
 		cerr << i << ' ';
 	}
 	cerr << endl;
 
-	// è¾“å‡ºæœªè¦†ç›–èŠ‚ç‚¹
+	// Êä³öÎ´¸²¸Ç½Úµã
 	cerr << "Uncovered centers: " << endl;
 	vector<bool> flag(pc.nodeNum, 0);
 	for (NodeId i : centers)
-		for (NodeId j : pc.coverages[i])
+		for (NodeId j : coverages[i])
 			flag[j] = true;
 
 	int tot = 0;
 	for (NodeId i = 0; i < pc.nodeNum; i++) {
 		if (!flag[i]) {
-			// cerr << i << endl;
+			 cerr << i << endl;
 			tot++;
 		}
 	}
@@ -98,6 +108,23 @@ void test(istream& inputStream, ostream& outputStream, long long secTimeout) {
 	return test(inputStream, outputStream, secTimeout, static_cast<int>(time(nullptr) + clock()));
 }
 
+void check(istream& ansStream, istream& refStream) {
+	vector<int> ans, ref;
+
+	int t;
+	while (ansStream >> t)
+		ans.push_back(t);
+	while (refStream >> t)
+		ref.push_back(t);
+
+	for (int i : ref) {
+		if (find(ans.begin(), ans.end(), i) == ans.end()) {
+			cerr << "Error: " << i << " not found in answer." << endl;
+		}
+	}
+};
+
+
 int main(int argc, char* argv[]) {
 	cerr << "load environment." << endl;
 	if (argc > 2) {
@@ -106,9 +133,15 @@ int main(int argc, char* argv[]) {
 		test(cin, cout, secTimeout, randSeed);
 	}
 	else {
-		ifstream ifs("instance/input2.txt");
+		ifstream ifs("instance/input1.txt");
 		ofstream ofs("instance/solution.txt");
 		test(ifs, ofs, 100000); // for self-test.
+
+		ifs.close();
+		ofs.close();
+		ifstream ref("instance/input1_ref.txt");
+		ifstream ans("instance/solution.txt");
+		check(ans, ref);
 	}
 	return 0;
 }
