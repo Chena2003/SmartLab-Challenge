@@ -338,25 +338,32 @@ namespace szx {
 			cerr << "Iteration : " << input.U-- << endl;
 
 			// 缩小半径
-			// int n = input.nodesWithDrops.size();
-			// for (int t = 0; (restMilliSec() > RESSERVE) && (t < n); ++ t) {
-			// 	reduceRadius(input, input.nodesWithDrops[t]);
+			int n = input.U - input.obj;
+			for (int t = 0; (restMilliSec() > RESSERVE) && (t < n); ++ t) {
+				reduceRadius(input, input.nodesWithDrops[t]);
 
-			// 	if (input.U == input.obj - 1)
-			// 		break;
+				--input.U;
+				//if (--input.U > input.obj)
+				//	continue;
 
-			// 	if (check(output, input)) {
-			// 		cerr << "Iteration : " << input.U-- << " skip. " << endl;
-			// 		//continue;
-			// 	}
-			// 	else {
-			// 		if (!coverAllNodesUnderFixedRadius(output, input, restMilliSec, seed)) {
-			// 			break;
-			// 		}
-			// 		cerr << "Iteration : " << input.U-- << endl;
-			// 	}
-			// }
+				//if (check(output, input)) {
+				//	cerr << "Iteration : " << input.U-- << " skip. " << endl;
+				//	//continue;
+				//}
+				//else {
+				//	if (!coverAllNodesUnderFixedRadius(output, input, restMilliSec, seed)) {
+				//		break;
+				//	}
+				//	cerr << "Iteration : " << input.U-- << endl;
+				//}
+			}
 
+			if (check(output, input))
+				return totiter;
+
+			cerr << input.U << ' ' << input.obj << endl;
+			coverAllNodesUnderFixedRadius(output, input, restMilliSec, seed);
+			
 			cerr << "Tototal Iters: " << totiter << endl;
 			return totiter;
 		}
