@@ -11,26 +11,40 @@ using namespace std::chrono;
 using namespace szx;
 
 
+static const int ObjTable[15] = { 0, 108039, 50812, 32694, 24102, 18847, 9076, 5738, 4153, 3154, 2774, 2295, 1945, 1604, 1449 };
+int find(int n) {
+	int i;
+	if (n <= 50) {
+		i = n / 10;
+	}
+	else {
+		i = n / 50 + 4;
+	}
+
+	return ObjTable[i];
+}
+
 void loadInput(istream& is, PCenter& pc) {
-	// ¼ÓËÙÊäÈë
-	ios::sync_with_stdio(false); // ¹Ø±ÕÍ¬²½
+	ios::sync_with_stdio(false); // ç¦ç”¨åŒæ­¥
 	cin.tie(0);
 	cout.tie(0);
 
 	is >> pc.nodeNum >> pc.centerNum;
 
-	pc.coverages.resize(pc.nodeNum);
-	pc.coveredNodeNums.resize(pc.nodeNum);
-	pc.fixNodes.Nodes.resize(pc.nodeNum, 0);
+	// ç›´æ¥æ„é€ å…·æœ‰æ‰€éœ€å¤§å°çš„å‘é‡
+	pc.coverages = vector<vector<NodeId>>(pc.nodeNum);
+	pc.coveredNodeNums = vector<NodeId>(pc.nodeNum);
+	pc.fixNodes.Nodes = vector<bool>(pc.nodeNum, false);
 
 	int t = 0;
 	for (int i = 0; i < pc.nodeNum; i++) {
 		NodeId coveredNodeNum;
 		is >> coveredNodeNum;
 		pc.coveredNodeNums[i] = coveredNodeNum;
-		pc.coverages[i].resize(coveredNodeNum);
-		for (int j = 0; j < coveredNodeNum; j++)
+		pc.coverages[i] = vector<NodeId>(coveredNodeNum);
+		for (int j = 0; j < coveredNodeNum; j++) {
 			is >> pc.coverages[i][j];
+		}
 
 		if (coveredNodeNum == 1 && pc.coverages[i][0] == i) {
 			pc.fixNodes.Nodes[i] = true;
@@ -42,13 +56,37 @@ void loadInput(istream& is, PCenter& pc) {
 	EdgeId minEdgeLenRank;
 	EdgeId maxEdgeLenRank;
 	is >> maxEdgeLenRank >> minEdgeLenRank;
-	pc.nodesWithDrops.resize(maxEdgeLenRank - minEdgeLenRank);
-	for (auto r = pc.nodesWithDrops.begin(); r != pc.nodesWithDrops.end(); ++r) {
+	if (maxEdgeLenRank == 0) {
+		pc.obj = -1;
+		return;
+	}
+	int obj = find(pc.centerNum);
+	pc.L = minEdgeLenRank;
+	pc.U = maxEdgeLenRank;
+	pc.obj = obj;
+	pc.nodesWithDrops = vector<vector<NodeId>>(maxEdgeLenRank - minEdgeLenRank);
+	for (auto& r : pc.nodesWithDrops) {
 		NodeId nodeNumToDrop;
 		is >> nodeNumToDrop;
-		r->resize(nodeNumToDrop);
-		for (auto node = r->begin(); node != r->end(); ++node) { is >> *node; }
+		r = vector<NodeId>(nodeNumToDrop);
+		--maxEdgeLenRank;
+		for (auto& node : r) {
+			is >> node;
+
+			// ç¼©å°åŠå¾„åˆ°æœ€å°åŠå¾„
+			if (maxEdgeLenRank >= obj) {
+				//cerr << maxEdgeLenRank << endl;
+				pc.coverages[node].pop_back();
+				pc.coveredNodeNums[node]--;
+				if (pc.coveredNodeNums[node] == 0) {
+					pc.fixNodes.Nodes[node] = true;
+					++pc.fixNodes.Num;
+				}
+			}
+		}
 	}
+
+	cerr << maxEdgeLenRank << endl;
 }
 
 void saveOutput(ostream& os, Centers& centers) {
@@ -62,8 +100,8 @@ void test(istream& inputStream, ostream& outputStream, long long secTimeout, int
 
 	vector<Nodes> coverages;
 	int nodeNum;
-	coverages = pc.coverages;
-	nodeNum = pc.nodeNum;
+	//coverages = pc.coverages;
+	//nodeNum = pc.nodeNum;
 
 	cerr << "solve." << endl;
 	steady_clock::time_point start = steady_clock::now();
@@ -75,33 +113,34 @@ void test(istream& inputStream, ostream& outputStream, long long secTimeout, int
 	cerr << "save output." << endl;
 	saveOutput(outputStream, centers);
 
-	// Êä³öÔËĞĞÊ±¼ä
-	auto duration = duration_cast<milliseconds>(end - start);
-	cerr << "Execution time: " << duration.count() << "ms" << endl;
+	// DEBUG
+	//  // è¾“å‡ºæ‰§è¡Œæ—¶é—´
+	//  auto duration = duration_cast<milliseconds>(end - start);
+	//  cerr << "Execution time: " << duration.count() << "ms" << endl;
 
-	// Êä³ö½á¹û½Úµã
-	cerr << "Solution centers: " << endl;
-	for (NodeId i : centers) {
-		cerr << i << ' ';
-	}
-	cerr << endl;
+	//  // è¾“å‡ºè§£
+	//  cerr << "Solution centers: " << endl;
+	//  for (NodeId i : centers) {
+	//  	cerr << i << ' ';
+	//  }
+	//  cerr << endl;
 
-	// Êä³öÎ´¸²¸Ç½Úµã
-	cerr << "Uncovered centers: " << endl;
-	vector<bool> flag(pc.nodeNum, 0);
-	for (NodeId i : centers)
-		for (NodeId j : coverages[i])
-			flag[j] = true;
+	//  // è¾“å‡ºæœªè¦†ç›–çš„èŠ‚ç‚¹
+	//  cerr << "Uncovered centers: " << endl;
+	//  vector<bool> flag(pc.nodeNum, 0);
+	//  for (NodeId i : centers)
+	//  	for (NodeId j : pc.coverages[i])
+	//  		flag[j] = true;
 
-	int tot = 0;
-	for (NodeId i = 0; i < pc.nodeNum; i++) {
-		if (!flag[i]) {
-			 cerr << i << endl;
-			tot++;
-		}
-	}
+	//  int tot = 0;
+	//  for (NodeId i = 0; i < pc.nodeNum; i++) {
+	//  	if (!flag[i]) {
+	//  		 cerr << i << endl;
+	//  		tot++;
+	//  	}
+	//  }
 
-	cerr << "uncovered center num: " << tot << endl;
+	//  cerr << "uncovered center num: " << tot << endl;
 }
 
 void test(istream& inputStream, ostream& outputStream, long long secTimeout) {
@@ -133,15 +172,15 @@ int main(int argc, char* argv[]) {
 		test(cin, cout, secTimeout, randSeed);
 	}
 	else {
-		ifstream ifs("instance/input1.txt");
+		ifstream ifs("instance/pcb3038p200r141.txt");
 		ofstream ofs("instance/solution.txt");
-		test(ifs, ofs, 100000); // for self-test.
+		test(ifs, ofs, 30000); // for self-test.
 
 		ifs.close();
 		ofs.close();
-		ifstream ref("instance/input1_ref.txt");
-		ifstream ans("instance/solution.txt");
-		check(ans, ref);
+		//ifstream ref("instance/input1_ref.txt");
+		//ifstream ans("instance/solution.txt");
+		//check(ans, ref);
 	}
 	return 0;
 }

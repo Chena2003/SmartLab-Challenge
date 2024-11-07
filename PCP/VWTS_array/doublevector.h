@@ -1,4 +1,4 @@
-#ifndef __DOUBLEVECTOR_H__
+#ifndef __DOUBELVECTOR_H__
 #define __DOUBLEVECTOR_H__
 
 #include <vector>
@@ -12,6 +12,7 @@ private:
 public:
 	doublevector() = default;
 	doublevector(const doublevector& d) : map(d.map), data(d.data) {};
+	doublevector(int n) : map(n + 1, -1) {};
 
 	void init(int n);
 	void insert(int d);
@@ -21,4 +22,4 @@ public:
 	int operator[](int pos)	const { return data[pos]; };
 };
 
-#endif // __DOUBLEVECTOR_H__
+#endif // !__DOUBELVECTOR_H__
