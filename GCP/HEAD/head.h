@@ -44,7 +44,7 @@ private:
 	void FindMove(NodeColors sol, int &f, int iter);
 	void MakeMove(NodeColors sol, int &f, int iter);
 	int TabuCol(NodeColors sol);
-	int check(NodeColors p1, NodeColors p2);
+	bool check(NodeColors p1, NodeColors p2);
 public:
 	head() = default;
 	head(int input_num_vertex, int input_edge_num, int input_num_color, int tabu_max_iter, std::vector<std::array<int, 2>>& input_edges, int input_seed);
