@@ -12,32 +12,30 @@ using NodeColors = int*;
 class head {
 private:
 	int NodeNum, EdgeNum, ColorNum;
-	int MAXITER; // ½û¼Éµü´ú´ÎÊı
+	int MAXITER; // ç¦å¿Œè¿­ä»£æ¬¡æ•°
 	int COPYSIZE;
 	int SETSIZE;
 	int seed;
 
 	std::vector<std::array<int, 2>> edges;
-	//tdarray TabuTable;
-	//tdarray ACTable;
-	int** TabuTable; // ½û¼É±í
-	int** ACTable; // ÁÚ¾ÓÑÕÉ«±í
-	int** NeighborTable; // ½ÚµãÁÚ¾Ó±í
-	int* NeighborNums; // ½ÚµãÁÚ¾ÓµÄ¸öÊı
+	int** TabuTable; // ç¦å¿Œè¡¨
+	int** ACTable; // é‚»å±…é¢œè‰²è¡¨
+	int** NeighborTable; // èŠ‚ç‚¹é‚»å±…è¡¨
+	int* NeighborNums; // èŠ‚ç‚¹é‚»å±…çš„ä¸ªæ•°
 
 	int* ConflictNodes;
 	int* ConflictNodePos;
 	int ConflictNodeLen;
 
-	int besthistoryf; // ÀúÊ·×îºÃµÄf
-	int* EqualDeltaU; // ×îºÃ¶¯×÷½Úµã
-	int* EqualDeltaC; // ×îºÃ¶¯×÷ÑÕÉ«
+	int besthistoryf; // å†å²æœ€å¥½çš„f
+	int* EqualNontabuDeltaU, *EqualNontabuDeltaC; // æœ€å¥½éç¦å¿ŒåŠ¨ä½œèŠ‚ç‚¹å’Œé¢œè‰²
+	int* EqualTabuDeltaU, *EqualTabuDeltaC; // æœ€å¥½ç¦å¿ŒåŠ¨ä½œèŠ‚ç‚¹å’Œé¢œè‰²
 	int bestc, bestu, delta;
 
-	NodeColors p1, p2, e1, e2, best; // ½á¹û
+	NodeColors p1, p2, e1, e2, best; // ç»“æœ
 	int p1f, p2f, e1f, e2f, bestf; // f
 
-	std::mt19937 pseudoRandNumGen; // Ëæ»úÊı
+	std::mt19937 pseudoRandNumGen; // éšæœºæ•°
 
 	inline int rand(int u) { return pseudoRandNumGen() % u; };
 	void InitNodeColor(NodeColors sol);
@@ -46,7 +44,7 @@ private:
 	void FindMove(NodeColors sol, int &f, int iter);
 	void MakeMove(NodeColors sol, int &f, int iter);
 	int TabuCol(NodeColors sol);
-	bool check(NodeColors p1, NodeColors p2);
+	int check(NodeColors p1, NodeColors p2);
 public:
 	head() = default;
 	head(int input_num_vertex, int input_edge_num, int input_num_color, int tabu_max_iter, std::vector<std::array<int, 2>>& input_edges, int input_seed);

@@ -1,7 +1,6 @@
 #include "doublevector.h"
 
 void doublevector::init(int n) {
-	//map.resize(n + 1);
 	map.assign(n + 1, -1);
 }
 

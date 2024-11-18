@@ -5,7 +5,6 @@
 #include <vector>
 
 class staticvector {
-	//std::vector<int> data;
 	int *data;
 	int len = 0;
 

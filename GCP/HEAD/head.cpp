@@ -21,8 +21,10 @@ head::head(int input_num_vertex, int input_edge_num, int input_num_color, int ta
 	ConflictNodes = new int[NodeNum];
 	ConflictNodePos = new int[NodeNum+1];
 	NeighborNums = new int[NodeNum];
-	EqualDeltaU = new int[4000];
-	EqualDeltaC = new int[4000];
+	EqualTabuDeltaC = new int[2000];
+	EqualTabuDeltaU = new int[2000];
+	EqualNontabuDeltaC = new int[2000];
+	EqualNontabuDeltaU = new int[2000];
 
 	TabuTable = new int* [NodeNum];
 	ACTable = new int* [NodeNum];
@@ -60,8 +62,10 @@ head::~head() {
 	delete ConflictNodes;
 	delete ConflictNodePos;
 	delete NeighborNums;
-	delete EqualDeltaU;
-	delete EqualDeltaC;
+	delete EqualNontabuDeltaU;
+	delete EqualNontabuDeltaC;
+	delete EqualTabuDeltaU;
+	delete EqualTabuDeltaC;
 
 	for (int i = 0; i < NodeNum; ++i) {
 		delete TabuTable[i];
@@ -92,21 +96,21 @@ int head::ComputeConflict(NodeColors sol) {
 }
 
 void head::GPX(NodeColors p1, NodeColors p2, NodeColors son) {
-	// ÿ����ɫ�Ľڵ㼯��
+	// 每个颜色的节点集合
 	NodeColors p[2] = { p1, p2 };
 	vector<vector<doublevector>> pnode(2, vector<doublevector>(ColorNum, doublevector(NodeNum)));
-	doublevector uncolorNodes(NodeNum); // δȾɫ�ڵ�
+	doublevector uncolorNodes(NodeNum); // 未染色节点
 
 	for (int i = 0; i < NodeNum; ++i) {
-		// ��ʼ��ÿ����ɫ�Ľڵ�
+		// 初始化每个颜色的节点
 		pnode[0][p1[i]].insert(i);
 		pnode[1][p2[i]].insert(i);
 
-		// ��ʼ��δȾɫ�ڵ�
+		// 初始化未染色节点
 		uncolorNodes.insert(i);
 	}
 
-	// Ͱ�����ҳ��ڵ�����������ɫ
+	// 桶排序找出节点数量最多的颜色
 	vector<vector<doublevector>> cnodeNum(2, vector<doublevector>(NodeNum, doublevector(ColorNum)));
 	uint32_t maxcolorNum[2] = { 0, 0 };
 	for (int i = 0; i < ColorNum; ++i) {
@@ -119,7 +123,7 @@ void head::GPX(NodeColors p1, NodeColors p2, NodeColors son) {
 			maxcolorNum[1] = pnode[1][i].size();
 	}
 
-	// �Ӹ�ĸ��ѡȡk����ɫ
+	// 从父母中选取k个颜色
 	for (int k = 0, id = 0; k < ColorNum; ++k, id ^= 1) {
 		doublevector t;
 		while (cnodeNum[id][maxcolorNum[id]].size() == 0)
@@ -130,7 +134,7 @@ void head::GPX(NodeColors p1, NodeColors p2, NodeColors son) {
 
 		t = pnode[id][color];
 
-		// ɾ����ɫt�����нڵ�
+		// 删除颜色t中所有节点
 		for (int i = 0; i < t.size(); ++i) {
 			int nodeId = t[i];
 			son[nodeId] = k;
@@ -147,7 +151,7 @@ void head::GPX(NodeColors p1, NodeColors p2, NodeColors son) {
 		cnodeNum[id][0].insert(color);
 	}
 
-	// δ������ɫ�ڵ��������ɫ
+	// 未覆盖颜色节点随机赋颜色
 	for (int i = 0; i < uncolorNodes.size(); ++i) {
 		int nodeId = uncolorNodes[i];
 		son[nodeId] = rand(ColorNum);
@@ -155,8 +159,8 @@ void head::GPX(NodeColors p1, NodeColors p2, NodeColors son) {
 }
 
 void head::FindMove(NodeColors sol, int &f, int iter) {
-	delta = 10000;
-	int EqualDeltaLen = 0;
+	int TabuDelta = INT32_MAX, NontabuDelta = INT32_MAX;
+	int EqualNontabuDeltaLen = 0, EqualTabuDeltaLen = 0;
 	for(int i = 0; i < ConflictNodeLen; ++i) {
 		int ConflictNode = ConflictNodes[i];
 		int ci = sol[ConflictNode];
@@ -167,28 +171,52 @@ void head::FindMove(NodeColors sol, int &f, int iter) {
 
 			int t = ACTable[ConflictNode][k] - ACTable[ConflictNode][ci];
 
-			if (TabuTable[ConflictNode][k] > iter && f + t >= bestf)
-				continue;
+			if (TabuTable[ConflictNode][k] <= iter) { // 非禁忌动作
+				if (t < NontabuDelta) {
+					NontabuDelta = t;
 
-			if (t < delta) {
-				delta = t;
-
-				EqualDeltaLen = 0;
-				EqualDeltaU[EqualDeltaLen] = ConflictNode;
-				EqualDeltaC[EqualDeltaLen] = k;
-				++EqualDeltaLen;
+					EqualNontabuDeltaLen = 0;
+					EqualNontabuDeltaU[EqualNontabuDeltaLen] = ConflictNode;
+					EqualNontabuDeltaC[EqualNontabuDeltaLen] = k;
+					++EqualNontabuDeltaLen;
+				}
+				else if (t == NontabuDelta) {
+					EqualNontabuDeltaU[EqualNontabuDeltaLen] = ConflictNode;
+					EqualNontabuDeltaC[EqualNontabuDeltaLen] = k;
+					++EqualNontabuDeltaLen;
+				}
 			}
-			else if (t == delta) {
-				EqualDeltaU[EqualDeltaLen] = ConflictNode;
-				EqualDeltaC[EqualDeltaLen] = k;
-				++EqualDeltaLen;
+			else { // 禁忌动作
+				if (t < TabuDelta) {
+					TabuDelta = t;
+
+					EqualTabuDeltaLen = 0;
+					EqualTabuDeltaU[EqualTabuDeltaLen] = ConflictNode;
+					EqualTabuDeltaC[EqualTabuDeltaLen] = k;
+					++EqualTabuDeltaLen;
+				}
+				else if (t == TabuDelta) {
+					EqualTabuDeltaU[EqualTabuDeltaLen] = ConflictNode;
+					EqualTabuDeltaC[EqualTabuDeltaLen] = k;
+					++EqualTabuDeltaLen;
+				}
 			}
 		}
 	}
 
-	int choice = rand(EqualDeltaLen);
-	bestu = EqualDeltaU[choice];
-	bestc = EqualDeltaC[choice];
+	// 禁忌特赦
+	if (TabuDelta < NontabuDelta && (TabuDelta + f < besthistoryf)) {
+		int choice = rand(EqualTabuDeltaLen);
+		bestu = EqualTabuDeltaU[choice];
+		bestc = EqualTabuDeltaC[choice];
+		delta = TabuDelta;
+	}
+	else {
+		int choice = rand(EqualNontabuDeltaLen);
+		bestu = EqualNontabuDeltaU[choice];
+		bestc = EqualNontabuDeltaC[choice];
+		delta = NontabuDelta;
+	}
 }
 
 void head::MakeMove(NodeColors sol, int &f, int iter) {
@@ -196,13 +224,13 @@ void head::MakeMove(NodeColors sol, int &f, int iter) {
 	sol[bestu] = bestc;
 	f += delta;
 
-	// ���������ʷ��ֵ
+	// 更新最好历史价值ֵ
 	if (f < besthistoryf)
 		besthistoryf = f;
 
-	TabuTable[bestu][ci] = iter + 0.6 * f + rand(10); // ���½��ɱ�
+	TabuTable[bestu][ci] = iter + f + rand(10) + 1; // 更新禁忌表
 
-	// ������ɫ��
+	// 更新颜色表
 	int adjNum = NeighborNums[bestu];
 	for (int i = 0; i < adjNum; ++i) {
 		int adj = NeighborTable[bestu][i];
@@ -210,7 +238,7 @@ void head::MakeMove(NodeColors sol, int &f, int iter) {
 		--ACTable[adj][ci];
 		++ACTable[adj][bestc];
 
-		// ���³�ͻ�ڵ�
+		// 更新冲突节点
 		if (ACTable[adj][sol[adj]] == 0 && ConflictNodePos[adj] != -1) {
 			int t = ConflictNodePos[adj];
 			ConflictNodes[t] = ConflictNodes[--ConflictNodeLen];
@@ -234,7 +262,7 @@ int head::TabuCol(NodeColors sol) {
 	}
 
 	int f = 0;
-	// ��ʼ����ɫ�����ھӱ��ͳ�ͻ�ڵ�
+	// 初始化颜色表，邻居表和冲突节点
 	for(const auto& edge : edges) {
 		int i = edge[0], j = edge[1];
 		int ci = sol[i], cj = sol[j];
@@ -315,7 +343,7 @@ void head::HybridEvolution() {
 	e1f = ComputeConflict(e1);
 	e2f = ComputeConflict(e2);
 
-	int cycle = 10; // ÿ10������
+	int cycle = 10; // 每10代更新
 	NodeColors c1 = new int[NodeNum];
 	NodeColors c2 = new int[NodeNum];
 	int gen;
@@ -345,6 +373,7 @@ void head::HybridEvolution() {
 			bestf = e1f;
 		}
 
+		// 每10代更新
 		if (gen % cycle == 0) {
 			memcpy(p1, e2, COPYSIZE);
 			memcpy(e2, e1, COPYSIZE);
@@ -352,14 +381,16 @@ void head::HybridEvolution() {
 			e1f = ComputeConflict(e1);
 		}
 
-		if (check(p1, p2)) {
-			cerr << "Gen: " << gen << " p1 == p2" << endl;
-			pseudoRandNumGen = mt19937(seed + rand(10000));
-			InitNodeColor(p2);
-		}
+		// 判断p1,p2是否相等
+		//if (check(p1, p2)) {
+		//	cerr << "Gen: " << gen << " p1 == p2" << endl;
+		//	pseudoRandNumGen = mt19937(seed + rand(10000));
+		//	InitNodeColor(p2);
+		//}
 	}
 
 	cerr << "Gen: " << gen << endl;
+	//cerr << "MaxPeck: " << maxPeck << endl;
 }
 
 void head::WriteSolution(vector<int>& output) {
