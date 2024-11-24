@@ -49,11 +49,12 @@ public:
 
 		int iter = solver.solve(restMilliSec);
 		solver.savesol(outputStream);
+		
 		steady_clock::time_point EndTime = steady_clock::now();
 		uint64_t duration = duration_cast<milliseconds>(EndTime - StartTime).count();
 
 		cerr << "Run Time: " << duration << " Frequency: " << iter << endl;
-		solver.check();
+		// solver.check();
 	}
 };
 

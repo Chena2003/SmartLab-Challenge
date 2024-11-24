@@ -23,7 +23,7 @@ private:
 
 	// 解结构
 	std::vector<int> Sol, BestSol;
-	int conflict;
+	int conflict = 0;
 
 	// 禁忌搜索
 	int ConflictNodeLen = 0;

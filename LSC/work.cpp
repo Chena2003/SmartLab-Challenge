@@ -471,7 +471,7 @@ int Work::solve(function<long long()> restMilliSec) {
 		MakeMove(iter);
 		
 		t = max(t, conflict - bestconflict);
-		if (conflict <= bestconflict) {
+		if (conflict < bestconflict) {
 			BestSol = Sol;
 			bestconflict = conflict;
 

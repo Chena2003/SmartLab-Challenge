@@ -6,13 +6,13 @@
 
 class doublevector {
 private:
+	int mapsize = 0;
 	std::vector<int> map;
 	std::vector<int> data;
-	int mapsize;
 
 public:
 	doublevector() = default;
-	doublevector(const doublevector& d) : map(d.map), data(d.data), mapsize(d.mapsize) {};
+	doublevector(const doublevector& d) : mapsize(d.mapsize), map(d.map), data(d.data) {};
 	doublevector(int n) : mapsize(n), map(n, -1) {};
 
 	void init(int n);

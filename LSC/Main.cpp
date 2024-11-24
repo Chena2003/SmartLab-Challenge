@@ -63,7 +63,8 @@ int main(int argc, char* argv[]) {
 		//	cerr << "*****************" << endl;
 		//}
 
-		ifstream ifs("./Instance/LSC.n50f1750.09.txt");
+		// ifstream ifs("./Instance/LSC.n50f1750.09.txt");
+		ifstream ifs("./LSC.n50f1000.00.txt");
 		ofstream ofs("./Instance/solution.txt");
 		test(ifs, ofs, 1500); // for self-test
 	}
