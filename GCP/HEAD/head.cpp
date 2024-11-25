@@ -54,24 +54,27 @@ head::head(int input_num_vertex, int input_edge_num, int input_num_color, int ta
 }
 
 head::~head() {
-	delete p1;
-	delete p2;
-	delete e1;
-	delete e2;
-	delete best;
-	delete ConflictNodes;
-	delete ConflictNodePos;
-	delete NeighborNums;
-	delete EqualNontabuDeltaU;
-	delete EqualNontabuDeltaC;
-	delete EqualTabuDeltaU;
-	delete EqualTabuDeltaC;
+	delete[] p1;
+	delete[] p2;
+	delete[] e1;
+	delete[] e2;
+	delete[] best;
+	delete[] ConflictNodes;
+	delete[] ConflictNodePos;
+	delete[] NeighborNums;
+	delete[] EqualNontabuDeltaU;
+	delete[] EqualNontabuDeltaC;
+	delete[] EqualTabuDeltaU;
+	delete[] EqualTabuDeltaC;
 
 	for (int i = 0; i < NodeNum; ++i) {
-		delete TabuTable[i];
-		delete ACTable[i];
-		delete NeighborTable[i];
+		delete[] TabuTable[i];
+		delete[] ACTable[i];
+		delete[] NeighborTable[i];
 	}
+	delete[] TabuTable;
+	delete[] ACTable;
+	delete[] NeighborTable;
 }
 
 void head::InitNodeColor(NodeColors sol) {
