@@ -10,3 +10,4 @@
 3. LSC问题
       + [SRLS with vector](./LSC/SRLS_vector/)
       + [SRLS with array](./LSC/SRLS_array/)
+      + [SRLS with dynamic_bitset](./LSC/SRLS_dynamic_bitset/)
