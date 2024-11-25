@@ -1,9 +1,9 @@
 #include <iostream>
 #include <unordered_set>
+#include <chrono>
+#include <cstring>
 #include "work.h"
 #include "doublevector.h"
-#include "staticvector.h"
-#include <chrono>
 
 using namespace std;
 using namespace std::chrono;
@@ -11,23 +11,47 @@ using namespace std::chrono;
 Work::Work(int vnum, int cnum, const vector<Assignment>& fixNode, int seed) :
 	VNum(vnum),
 	CNum(cnum),
-	Sol(vnum),
 	ColorDomain(vnum, doublevector(cnum)),
 	RowColorDomain(cnum, doublevector(cnum)),
 	NeighborTable(vnum, doublevector(vnum)),
 	RowNeighborTable(vnum, doublevector(vnum)),
-	ColNeighborTable(vnum, doublevector(vnum)),
-	FixNodes(vnum, false),
-	ConflictNodes(vnum),
-	ConflictNodePos(vnum, -1),
-	AdjColorTable(vnum, vector<int>(vnum, 0)),
-	TabuTable(vnum, vector<int>(cnum, 0)),
-	EqualNontabuDeltaU(2000, 0),
-	EqualNontabuDeltaV(2000, 0),
-	EqualTabuDeltaU(2000, 0),
-	EqualTabuDeltaV(2000, 0)
+	ColNeighborTable(vnum, doublevector(vnum))
 {
 	initRand(seed);
+
+	VSIZE = sizeof(int) * vnum;
+	CSIZE = sizeof(int) * cnum;
+
+	FixNodes = new bool[vnum];
+	memset(FixNodes, false, vnum);
+
+	Sol = new int[vnum];
+	BestSol = new int[vnum];
+
+	ConflictNodes = new int[vnum];
+	ConflictNodePos = new int[vnum];
+	memset(ConflictNodePos, -1, VSIZE);
+
+	ConflictNodes_ = new int[vnum];
+	ConflictNodePos_ = new int[vnum];
+
+	AdjColorTable = new int* [vnum];
+	TabuTable = new int* [vnum];
+	AdjColorTable_ = new int* [vnum];
+	for (int i = 0; i < vnum; ++i) {
+		AdjColorTable[i] = new int[vnum];
+		memset(AdjColorTable[i], 0, VSIZE);
+
+		TabuTable[i] = new int[cnum];
+		memset(TabuTable[i], 0, CSIZE);
+
+		AdjColorTable_[i] = new int[vnum];
+	}
+
+	EqualTabuDeltaU = new int[2000];
+	EqualTabuDeltaV = new int[2000];
+	EqualNontabuDeltaU = new int[2000];
+	EqualNontabuDeltaV = new int[2000];
 
 	// 初始化节点的邻居和颜色
 	for (int i = 0; i < CNum; ++i) {
@@ -55,7 +79,6 @@ Work::Work(int vnum, int cnum, const vector<Assignment>& fixNode, int seed) :
 		int nodeId = r * CNum + c;
 		FixNodes[nodeId] = true;
 		ColorDomain[nodeId].clear();
-		//ColorDomain[nodeId].insert(n);
 		Sol[nodeId] = n;
 		RowColorDomain[nodeId / CNum].erase(n); // 删除行颜色域中ci颜色
 
@@ -65,6 +88,29 @@ Work::Work(int vnum, int cnum, const vector<Assignment>& fixNode, int seed) :
 			ColorDomain[u].erase(n);
 		}
 	}
+}
+
+Work::~Work() {
+	delete[] FixNodes;
+	delete[] Sol;
+	delete[] BestSol;
+	delete[] ConflictNodes;
+	delete[] ConflictNodePos;
+	delete[] ConflictNodes_;
+	delete[] ConflictNodePos_;
+	delete[] EqualTabuDeltaU;
+	delete[] EqualTabuDeltaV;
+	delete[] EqualNontabuDeltaU;
+	delete[] EqualNontabuDeltaV;
+
+	for (int i = 0; i < VNum; ++i) {
+		delete[] AdjColorTable[i];
+		delete[] TabuTable[i];
+		delete[] AdjColorTable_[i];
+	}
+	delete[] AdjColorTable;
+	delete[] TabuTable;
+	delete[] AdjColorTable_;
 }
 
 // 判断节点是否满足缩减规则
@@ -123,7 +169,6 @@ void Work::InitSol() {
 			if (~(ci = CheckRule(v))) { // 判断节点i是否满足缩减条件
 				FixNodes[v] = true;
 				Sol[v] = ci;
-				//CandSet.erase(v);
 				Tset.insert(v);
 
 				ColorDomain[v].clear(); // 节点v颜色域设置为空
@@ -152,35 +197,6 @@ void Work::InitSol() {
 		Sol[v] = RowColorDomain[row][c];
 
 		RowColorDomain[row].erase(Sol[v]);
-
-		//Sol[v] = -1;
-	}
-}
-
-// 初始化禁忌搜索变量
-void Work::InitTabuSearch() {
-	//ConflictNodeLen = 0;
-	//ConflictNodePos.assign(VNum, -1);
-	//
-	//AdjColorTable.assign(VNum, vector<int>(VNum, 0));
-	//TabuTable.assign(VNum, vector<int>(CNum, 0));
-
-	// 初始化邻居颜色表
-	for (int i = 0; i < VNum; ++i) {
-		for (int j = 0; j < ColNeighborTable[i].size(); ++j) {
-			int t = ColNeighborTable[i][j];
-
-			++AdjColorTable[i][Sol[t]];
-
-			// 冲突节点
-			if (Sol[i] == Sol[t]) {
-				if (!FixNodes[i] && ConflictNodePos[i] == -1) {
-					ConflictNodes[ConflictNodeLen] = i;
-					ConflictNodePos[i] = ConflictNodeLen;
-					++ConflictNodeLen;
-				}
-			}
-		}
 	}
 }
 
@@ -289,7 +305,6 @@ void Work::MakeMove(int iter) {
 	TabuTable[bestv][colorv] = iter + 0.4 * conflict + rand(1, 11);
 	if (ConflictNodePos[bestu] != -1)
 		TabuTable[bestu][coloru] = iter + 0.4 * conflict + rand(1, 11);
-	//TabuTable[bestu][coloru] = TabuTable[bestu][coloru] * (ConflictNodePos[bestu] == -1) + (0.4 * conflict + rand(1, 11)) * (!(ConflictNodePos[bestu] == -1));
 
 	// 在冲突节点中删除bestv和bestu
 	if (AdjColorTable[bestv][coloru] == 0) {
@@ -391,23 +406,6 @@ void Work::check() {
 
 int Work::solve(function<long long()> restMilliSec) {
 	InitSol();
-
-	//int fixnum = 0;
-	//cerr << "Test Init: " << endl;
-	//for (int i = 0; i < VNum; ++i) {
-	//	
-	//	if (~Sol[i]) cerr << Sol[i] << ' ', ++fixnum;
-	//	else cerr << '*' << ' ';
-
-	//	if ((i + 1) % CNum == 0)
-	//		cerr << endl;
-	//}
-	//cerr << "fixnum: " << fixnum << endl;
-
-	// 如何处理已经固定节点
-	// 是将已经固定节点标记
-	// 还是将已经固定节点删除
-	// 目前采用将固定节点删除
 	
 	for (int i = 0; i < VNum; ++i) {
 		for (int j = 0; j < ColNeighborTable[i].size(); ++j) { // 计算冲突数
@@ -428,8 +426,10 @@ int Work::solve(function<long long()> restMilliSec) {
 		}
 	}
 
-	if (conflict == 0)
+	if (conflict == 0) {
+		memcpy(BestSol, Sol, VSIZE);
 		return 0;
+	}
 
 	conflict /= 2;
 	besthistoryf = conflict;
@@ -455,14 +455,8 @@ int Work::solve(function<long long()> restMilliSec) {
 	}
 
 	int accu = 0, rt = RT0;
-	BestSol = Sol;
+	memcpy(BestSol, Sol, VSIZE);
 	int bestconflict = conflict;
-
-	// 恢复BestSol时的冲突节点
-	int ConflictNodeLen_;
-	vector<int> ConflictNodes_; // 冲突节点
-	vector<int> ConflictNodePos_;
-	vector<vector<int>> AdjColorTable_; // 邻居颜色表
 
 	int t = -100000, iter;
 	for (iter = 0; restMilliSec() > 0; ++iter) {
@@ -472,32 +466,37 @@ int Work::solve(function<long long()> restMilliSec) {
 		
 		t = max(t, conflict - bestconflict);
 		if (conflict < bestconflict) {
-			BestSol = Sol;
+			memcpy(BestSol, Sol, VSIZE);
 			bestconflict = conflict;
 
 			ConflictNodeLen_ = ConflictNodeLen;
-			ConflictNodes_ = ConflictNodes;
-			ConflictNodePos_ = ConflictNodePos;
-			AdjColorTable_ = AdjColorTable;
+			memcpy(ConflictNodes_, ConflictNodes, VSIZE);
+			memcpy(ConflictNodePos_, ConflictNodePos, VSIZE);
+			for (int i = 0; i < VNum; ++i)
+				memcpy(AdjColorTable_[i], AdjColorTable[i], VSIZE);
 
 			if (conflict == 0) {
 				return iter;
 			}
 		}
 		else if (conflict - bestconflict > rt) {
-			Sol = BestSol;
+			memcpy(Sol, BestSol, VSIZE);
+
 			conflict = bestconflict;
 
 			// 恢复best时冲突节点
 			ConflictNodeLen = ConflictNodeLen_;
-			ConflictNodes = ConflictNodes_;
-			ConflictNodePos = ConflictNodePos_;
-			AdjColorTable = AdjColorTable_;
+			memcpy(ConflictNodes, ConflictNodes_, VSIZE);
+			memcpy(ConflictNodePos, ConflictNodePos_, VSIZE);
 
-			cerr << "Iteration: " << iter << " Adaptive Restart. " << endl;
+			// cerr << "Iteration: " << iter << " Adaptive Restart. " << endl;
+
 			// 清空禁忌表
 			iter = 0;
-			TabuTable.assign(VNum, vector<int>(CNum, 0));
+			for (int i = 0; i < VNum; ++i) {
+				memcpy(AdjColorTable[i], AdjColorTable_[i], VSIZE);
+				memset(TabuTable[i], 0, CSIZE);
+			}
 
 			if (rt < MAXRT) {
 				++accu;

@@ -8,4 +8,5 @@
       + [HEAD](./GCP/HEAD/)
       + [TabuCol](./GCP/TabuCol/)
 3. LSC问题
-      + [SRLS](./LSC/)
+      + [SRLS with vector](./LSC/SRLS_vector/)
+      + [SRLS with array](./LSC/SRLS_array/)

@@ -32,15 +32,10 @@ void test(istream& inputStream, ostream& outputStream, long long secTimeout, int
 
 	cerr << "solve." << endl;
 	steady_clock::time_point endTime = steady_clock::now() + seconds(secTimeout);
-	//Table assignments(lsc.n, std::vector<Num>(lsc.n));
 	solveLatinSquare(outputStream, lsc, [&]() { return duration_cast<milliseconds>(endTime - steady_clock::now()).count(); }, randSeed);
-
-	//cerr << "save output." << endl;
-	//saveOutput(outputStream, assignments);
 }
 void test(istream& inputStream, ostream& outputStream, long long secTimeout) {
 	return test(inputStream, outputStream, secTimeout, static_cast<int>(time(nullptr) + clock()));
-	//return test(inputStream, outputStream, secTimeout, 2);
 }
 
 
@@ -63,8 +58,7 @@ int main(int argc, char* argv[]) {
 		//	cerr << "*****************" << endl;
 		//}
 
-		// ifstream ifs("./Instance/LSC.n50f1750.09.txt");
-		ifstream ifs("./LSC.n50f1000.00.txt");
+		ifstream ifs("./Instance/LSC.n70f3920.00.txt");
 		ofstream ofs("./Instance/solution.txt");
 		test(ifs, ofs, 1500); // for self-test
 	}
