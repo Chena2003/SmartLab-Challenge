@@ -31,6 +31,7 @@ private:
 	std::vector<int> ConflictNodePos; 
 	std::vector<std::vector<int>> AdjColorTable; // 邻居颜色表
 	std::vector<std::vector<int>> TabuTable; // 禁忌表
+	std::vector<std::vector<bool>> ColorDomainTable; // 颜色域表	
 
 	int besthistoryf; // 历史最好的f
 	std::vector<int> EqualNontabuDeltaU, EqualNontabuDeltaV; // 最好非禁忌动作节点U和V

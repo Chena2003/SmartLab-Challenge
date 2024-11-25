@@ -21,6 +21,7 @@ Work::Work(int vnum, int cnum, const vector<Assignment>& fixNode, int seed) :
 	ConflictNodePos(vnum, -1),
 	AdjColorTable(vnum, vector<int>(vnum, 0)),
 	TabuTable(vnum, vector<int>(cnum, 0)),
+	ColorDomainTable(vnum, vector<bool>(cnum, true)),
 	EqualNontabuDeltaU(2000, 0),
 	EqualNontabuDeltaV(2000, 0),
 	EqualTabuDeltaU(2000, 0),
@@ -121,7 +122,6 @@ void Work::InitSol() {
 			if (~(ci = CheckRule(v))) { // 判断节点i是否满足缩减条件
 				FixNodes[v] = true;
 				Sol[v] = ci;
-				//CandSet.erase(v);
 				Tset.insert(v);
 
 				ColorDomain[v].clear(); // 节点v颜色域设置为空
@@ -131,6 +131,8 @@ void Work::InitSol() {
 					int u = NeighborTable[v][i];
 
 					ColorDomain[u].erase(ci);
+					ColorDomainTable[u][ci] = false;
+
 				}
 
 				flag = true;
@@ -168,7 +170,7 @@ void Work::FindMove(int iter) {
 			int coloru = Sol[u];
 
 			int curdelta = AdjColorTable[v][coloru] + AdjColorTable[u][colorv] - AdjColorTable[u][coloru] - AdjColorTable[v][colorv];
-			int cursdelta = ColorDomain[v].find(colorv) - ColorDomain[v].find(coloru) + ColorDomain[u].find(coloru) - ColorDomain[u].find(colorv);
+			int cursdelta = ColorDomainTable[v][colorv] - ColorDomainTable[v][coloru] + ColorDomainTable[u][coloru] - ColorDomainTable[u][colorv];
 
 			// 禁忌
 			if (TabuTable[v][coloru] > iter || TabuTable[u][colorv] > iter) {
