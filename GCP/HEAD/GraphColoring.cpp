@@ -1,6 +1,5 @@
 #include "GraphColoring.h"
 #include "doublevector.h"
-#include "staticvector.h"
 #include "head.h"
 
 #include <random>

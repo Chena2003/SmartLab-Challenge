@@ -5,7 +5,6 @@
 #include <random>
 #include <iostream>
 #include <algorithm>
-#include "staticvector.h"
 
 using NodeColors = int*;
 
